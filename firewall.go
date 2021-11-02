@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
 	"time"
 
 	nfqueue "github.com/florianl/go-nfqueue"
@@ -33,17 +35,30 @@ func main() {
 
 	fn := func(a nfqueue.Attribute) int {
 		id := *a.PacketID
-		payload := *a.Payload
-		fmt.Printf("%v\n", payload)
-		// if(a.Payload){
-		nf.SetVerdict(id, nfqueue.NfAccept)
-		// } 
+		payload := make([]byte, len(*a.Payload))
+		copy(payload, *a.Payload)
+		payloadString := string(payload)
+		
+
+		if(strings.Contains(payloadString, "ciao")){
+			log.Print("DROP")
+			nf.SetVerdict(id, nfqueue.NfDrop)
+		} else {
+			log.Print("ACCEPT")
+			nf.SetVerdict(id, nfqueue.NfAccept)
+		}
+		fmt.Printf("%x\n", payloadString)
 		
 		return 0
 	}
 
+	r := func(e error) int {
+		fmt.Println("Error")
+		return 0
+	}
+
 	// Register your function to listen on nflqueue queue 100
-	err = nf.Register(ctx, fn)
+	err = nf.RegisterWithErrorFunc(ctx, fn, r)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -52,3 +67,4 @@ func main() {
 	// Block till the context expires
 	<-ctx.Done()
 }
+
