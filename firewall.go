@@ -28,15 +28,15 @@ func main() {
 	}
 	defer nf.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	ctx:= context.Background()
+
 
 	fn := func(a nfqueue.Attribute) int {
-		// Just print out the id and payload of the nfqueue packet
+		id := *a.PacketID
 		payload := *a.Payload
 		fmt.Printf("%v\n", payload)
 		// if(a.Payload){
-		// 	nf.SetVerdict(id, nfqueue.NfAccept)
+		nf.SetVerdict(id, nfqueue.NfAccept)
 		// } 
 		
 		return 0
