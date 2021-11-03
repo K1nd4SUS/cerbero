@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"time"
+	"regexp"
 
 	nfqueue "github.com/florianl/go-nfqueue"
 )
@@ -31,7 +31,7 @@ func main() {
 	defer nf.Close()
 
 	ctx:= context.Background()
-
+	reg, _ := regexp.Compile("ciao")
 
 	fn := func(a nfqueue.Attribute) int {
 		id := *a.PacketID
@@ -40,7 +40,8 @@ func main() {
 		payloadString := string(payload)
 		
 
-		if(strings.Contains(payloadString, "ciao")){
+		//if(strings.Contains(payloadString, "fantastic"))
+		if(reg.MatchString(payloadString)){
 			log.Print("DROP")
 			nf.SetVerdict(id, nfqueue.NfDrop)
 		} else {
