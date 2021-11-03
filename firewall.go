@@ -15,7 +15,7 @@ import (
 	nfqueue "github.com/florianl/go-nfqueue"
 )
 
-func checkFlag(mode string, nfqCoonfig uint16){
+func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int){
 	//check if nfqCoonfig is in the allowed range
 	if(nfqCoonfig < 1 || nfqCoonfig > 65535){
 		fmt.Println("Invalid argument for flag -nfq, the value need to be between 1 and 65535")
@@ -24,7 +24,12 @@ func checkFlag(mode string, nfqCoonfig uint16){
 
 	//check if mode is allowed (must be "w" or "b")
 	if(mode != "w" && mode != "b"){
-		fmt.Println("Invalid argument for flag -m, must be set to 'w' or 'b'")
+		fmt.Println("Invalid argument for flag -mode, must be set to 'w' or 'b'")
+		os.Exit(127)
+	}
+
+	if(protocol != "tcp" && protocol != "udp"){
+		fmt.Println("Invalid argument for flag -p, must be set to 'tcp' or 'udp'")
 		os.Exit(127)
 	}
 }
@@ -35,18 +40,22 @@ func main() {
 
 	//flag specifications
 	var nfqFlag = flag.Int("nfq", 100, "Queue number")
-	var modeFlag = flag.String("m", "w", "Whitelis or Blacklist")
+	var modeFlag = flag.String("mode", "w", "Whitelis or Blacklist")
+	var protocolFlag = flag.String("p", "tcp", "Protocol tcp or udp")
+	var dportFlag = flag.Int("dport", 8080, "Destination port number")
 	flag.Parse()
 
 	//some change for the flags
 	nfqCoonfig := uint16(*nfqFlag)
 	mode := *modeFlag
+	protocol := *protocolFlag
+	port := *dportFlag
 
 	//checks flags
-	checkFlag(mode, nfqCoonfig)
+	checkFlag(mode, nfqCoonfig, protocol, port)
 
 	//ADD iptables rule
-	cmd := exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", "8080", "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
+	cmd := exec.Command("iptables", "-I", "INPUT", "-p", protocol, "--dport", strconv.FormatInt(int64(port), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
 	_, err := cmd.Output()
 	if err != nil {
         fmt.Println("The program must be run as root")
@@ -118,8 +127,9 @@ func main() {
 	go func(){
 		<-c
 		fmt.Println("\nRemoving iptables rule")
-		cmd := exec.Command("iptables", "-D", "INPUT", "-p", "udp", "--dport", "8080", "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
+		cmd := exec.Command("iptables", "-D", "INPUT", "-p", protocol, "--dport", strconv.FormatInt(int64(port), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
 		cmd.Run()
+		fmt.Println("Done!")
 		os.Exit(0)
 	}()	
 
