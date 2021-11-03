@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"os/signal"
 	"regexp"
+	"strconv"
 	"time"
 
 	nfqueue "github.com/florianl/go-nfqueue"
@@ -41,6 +44,13 @@ func main() {
 
 	//checks flags
 	checkFlag(mode, nfqCoonfig)
+
+	//ADD iptables rule
+	cmd := exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", "8080", "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
+	stdout, err := cmd.Output()
+	fmt.Println(stdout, err)
+	cmd.Run()
+
 
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
@@ -100,6 +110,18 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func(){
+		<-c
+		fmt.Println("\nRemoving iptables rule")
+		cmd := exec.Command("iptables", "-D", "INPUT", "-p", "udp", "--dport", "8080", "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
+		stdout, _ := cmd.Output()
+		fmt.Println(stdout)
+		fmt.Println("Done")
+		os.Exit(0)
+	}()	
 
 	// Block till the context expires
 	<-ctx.Done()
