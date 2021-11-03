@@ -47,9 +47,11 @@ func main() {
 
 	//ADD iptables rule
 	cmd := exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", "8080", "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
-	stdout, err := cmd.Output()
-	fmt.Println(stdout, err)
-	cmd.Run()
+	_, err := cmd.Output()
+	if err != nil {
+        fmt.Println("The program must be run as root")
+        os.Exit(126)
+    }
 
 
 	// Set configuration options for nfqueue
@@ -117,9 +119,7 @@ func main() {
 		<-c
 		fmt.Println("\nRemoving iptables rule")
 		cmd := exec.Command("iptables", "-D", "INPUT", "-p", "udp", "--dport", "8080", "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
-		stdout, _ := cmd.Output()
-		fmt.Println(stdout)
-		fmt.Println("Done")
+		cmd.Run()
 		os.Exit(0)
 	}()	
 
