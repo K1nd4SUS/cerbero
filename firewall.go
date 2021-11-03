@@ -7,6 +7,7 @@ import (
 	"time"
 	"regexp"
 	"flag"
+	"os"
 	nfqueue "github.com/florianl/go-nfqueue"
 )
 
@@ -15,9 +16,25 @@ func main() {
 	// # sudo iptables -I INPUT -p tcp --dport 12345 -j NFQUEUE --queue-num 100
 
 	//flag specifications
-	var nfq = flag.Int("nfq", 100, "Queue number")
+	var nfqFlag = flag.Int("nfq", 100, "Queue number")
+	var modeFlag = flag.String("m", "w", "Whitelis or Blacklist")
 	flag.Parse()
-	nfqCoonfig := uint16(*nfq)
+
+	//some change for the flags
+	nfqCoonfig := uint16(*nfqFlag)
+	mode := *modeFlag
+
+	//check if nfqCoonfig is in the allowed range
+	if(nfqCoonfig < 1 || nfqCoonfig > 65535){
+		fmt.Println("Invalid argument for flag -nfq, the value need to be between 1 and 65535")
+		os.Exit(127)
+	}
+
+	//check if mode is allowed (must be "w" or "b")
+	if(mode != "w" && mode != "b"){
+		fmt.Println("Invalid argument for flag -m, must be set to 'w' or 'b'")
+		os.Exit(127)
+	}
 
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
@@ -36,7 +53,7 @@ func main() {
 	defer nf.Close()
 
 	ctx:= context.Background()
-	reg, _ := regexp.Compile("ciao")
+	reg, _ := regexp.Compile(`(ciao)|(s[0-9]+)`)
 
 	fn := func(a nfqueue.Attribute) int {
 		id := *a.PacketID
@@ -44,15 +61,26 @@ func main() {
 		copy(payload, *a.Payload)
 		payloadString := string(payload)
 		
-		if(reg.MatchString(payloadString)){
-			log.Print("DROP")
-			nf.SetVerdict(id, nfqueue.NfDrop)
-		} else {
-			log.Print("ACCEPT")
-			nf.SetVerdict(id, nfqueue.NfAccept)
-		}
-		fmt.Printf("%x\n", payloadString)
 		
+		if(mode == "b"){ //blacklist (if there is a match with the regex, drop the packet)
+			if(reg.MatchString(payloadString)){
+				log.Print("DROP")
+				nf.SetVerdict(id, nfqueue.NfDrop)
+			} else {
+				log.Print("ACCEPT")
+				nf.SetVerdict(id, nfqueue.NfAccept)
+			}
+			fmt.Printf("%x\n", payloadString)
+		}else if (mode == "w"){ //whitelist (if there is a match with the regex, accept the packet)
+			if(reg.MatchString(payloadString)){
+				log.Print("ACCEPT")
+				nf.SetVerdict(id, nfqueue.NfAccept)
+			} else {
+				log.Print("DROP")
+				nf.SetVerdict(id, nfqueue.NfDrop)
+			}
+			fmt.Printf("%x\n", payloadString)
+		}
 		return 0
 	}
 
@@ -61,7 +89,6 @@ func main() {
 		return 0
 	}
 
-	// Register your function to listen on nflqueue queue 100
 	err = nf.RegisterWithErrorFunc(ctx, fn, r)
 	if err != nil {
 		fmt.Println(err)
