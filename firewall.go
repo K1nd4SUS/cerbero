@@ -32,11 +32,16 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int){
 		fmt.Println("Invalid argument for flag -p, must be set to 'tcp' or 'udp'")
 		os.Exit(127)
 	}
+
+	if(port < 1 || port > 65535){
+		fmt.Println("Invalid argument for flag -dport, the value need to be between 1 and 65535")
+		os.Exit(127)
+	}
 }
 
 func main() {
 	// Send ingoing packets to nfqueue queue 100
-	// # sudo iptables -I INPUT -p tcp --dport 12345 -j NFQUEUE --queue-num 100
+	// $ sudo iptables -I INPUT -p tcp --dport 12345 -j NFQUEUE --queue-num 100
 
 	//flag specifications
 	var nfqFlag = flag.Int("nfq", 100, "Queue number")
