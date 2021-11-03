@@ -6,13 +6,12 @@ import (
 	"log"
 	"time"
 	"regexp"
-
 	nfqueue "github.com/florianl/go-nfqueue"
 )
 
 func main() {
-	// Send outgoing pings to nfqueue queue 100
-	// # sudo iptables -I OUTPUT -p tcp --dport 12345 -j NFQUEUE --queue-num 100
+	// Send ingoing packets to nfqueue queue 100
+	// # sudo iptables -I INPUT -p tcp --dport 12345 -j NFQUEUE --queue-num 100
 
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
@@ -39,7 +38,6 @@ func main() {
 		copy(payload, *a.Payload)
 		payloadString := string(payload)
 		
-
 		//if(strings.Contains(payloadString, "fantastic"))
 		if(reg.MatchString(payloadString)){
 			log.Print("DROP")
