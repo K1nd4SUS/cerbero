@@ -2,14 +2,29 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
-	"time"
-	"regexp"
-	"flag"
 	"os"
+	"regexp"
+	"time"
+
 	nfqueue "github.com/florianl/go-nfqueue"
 )
+
+func checkFlag(mode string, nfqCoonfig uint16){
+	//check if nfqCoonfig is in the allowed range
+	if(nfqCoonfig < 1 || nfqCoonfig > 65535){
+		fmt.Println("Invalid argument for flag -nfq, the value need to be between 1 and 65535")
+		os.Exit(127)
+	}
+
+	//check if mode is allowed (must be "w" or "b")
+	if(mode != "w" && mode != "b"){
+		fmt.Println("Invalid argument for flag -m, must be set to 'w' or 'b'")
+		os.Exit(127)
+	}
+}
 
 func main() {
 	// Send ingoing packets to nfqueue queue 100
@@ -24,17 +39,8 @@ func main() {
 	nfqCoonfig := uint16(*nfqFlag)
 	mode := *modeFlag
 
-	//check if nfqCoonfig is in the allowed range
-	if(nfqCoonfig < 1 || nfqCoonfig > 65535){
-		fmt.Println("Invalid argument for flag -nfq, the value need to be between 1 and 65535")
-		os.Exit(127)
-	}
-
-	//check if mode is allowed (must be "w" or "b")
-	if(mode != "w" && mode != "b"){
-		fmt.Println("Invalid argument for flag -m, must be set to 'w' or 'b'")
-		os.Exit(127)
-	}
+	//checks flags
+	checkFlag(mode, nfqCoonfig)
 
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
