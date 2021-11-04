@@ -47,7 +47,7 @@ func main() {
 
 	//flag specifications
 	var nfqFlag = flag.Int("nfq", 100, "Queue number")
-	var modeFlag = flag.String("mode", "w", "Whitelis or Blacklist")
+	var modeFlag = flag.String("mode", "b", "Whitelist or Blacklist")
 	var protocolFlag = flag.String("p", "tcp", "Protocol tcp or udp")
 	var dportFlag = flag.Int("dport", 8080, "Destination port number")
 	flag.Parse()
@@ -94,7 +94,6 @@ func main() {
 		payload := make([]byte, len(*a.Payload))
 		copy(payload, *a.Payload)
 		payloadString := string(payload)
-		
 		
 		if(mode == "b"){ //blacklist (if there is a match with the regex, drop the packet)
 			if(reg.MatchString(payloadString)){
