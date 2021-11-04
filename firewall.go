@@ -28,11 +28,13 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int){
 		os.Exit(127)
 	}
 
+	//checks if the procols is correct (must be "tcp" or "udp")
 	if(protocol != "tcp" && protocol != "udp"){
 		fmt.Println("Invalid argument for flag -p, must be set to 'tcp' or 'udp'")
 		os.Exit(127)
 	}
 
+	//check if the port number is right
 	if(port < 1 || port > 65535){
 		fmt.Println("Invalid argument for flag -dport, the value need to be between 1 and 65535")
 		os.Exit(127)
@@ -127,6 +129,7 @@ func main() {
 		return
 	}
 
+	//capture ctrl+c
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func(){
