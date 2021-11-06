@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	nfqueue "github.com/florianl/go-nfqueue"
@@ -48,17 +49,26 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType
 }
 
 func execJson(){
+	//loop for create iptables rules
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func(){
+		<-c
+		fmt.Println("\nRemoving iptables rule")
+		//loop for delete iptables rules
+		//cmd := exec.Command("iptables", "-D", "INPUT", "-p", protocol, "--dport", strconv.FormatInt(int64(port), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
+		//cmd.Run()
+		fmt.Println("Done!")
+		os.Exit(0)
+	}()	
+	var wg sync.WaitGroup
+	wg.Add(2)
+	//loop for start the go routines with exeC
+	wg.Wait()
 
 }
 
 func exeC(mode string, nfqCoonfig uint16, protocol string, port int){
-//ADD iptables rule
-	cmd := exec.Command("iptables", "-I", "INPUT", "-p", protocol, "--dport", strconv.FormatInt(int64(port), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
-	_, err := cmd.Output()
-	if err != nil {
-        fmt.Println("The program must be run as root")
-        os.Exit(126)
-    }
 
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
@@ -118,18 +128,6 @@ func exeC(mode string, nfqCoonfig uint16, protocol string, port int){
 		return
 	}
 
-	//capture ctrl+c
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func(){
-		<-c
-		fmt.Println("\nRemoving iptables rule")
-		cmd := exec.Command("iptables", "-D", "INPUT", "-p", protocol, "--dport", strconv.FormatInt(int64(port), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
-		cmd.Run()
-		fmt.Println("Done!")
-		os.Exit(0)
-	}()	
-
 	// Block till the context expires
 	<-ctx.Done()
 }
@@ -157,8 +155,26 @@ func main() {
 	checkFlag(mode, nfqCoonfig, protocol, port, inType)
 
 	if(inType == "j"){
-		execJson()
+		execJson(/*JSON*/)
 	} else {
+		//capture ctrl+c
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		go func(){
+			<-c
+			fmt.Println("\nRemoving iptables rule")
+			cmd := exec.Command("iptables", "-D", "INPUT", "-p", protocol, "--dport", strconv.FormatInt(int64(port), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
+			cmd.Run()
+			fmt.Println("Done!")
+			os.Exit(0)
+		}()	
+		//ADD iptables rule
+		cmd := exec.Command("iptables", "-I", "INPUT", "-p", protocol, "--dport", strconv.FormatInt(int64(port), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
+		_, err := cmd.Output()
+		if err != nil {
+			fmt.Println("The program must be run as root")
+			os.Exit(126)
+		}
 		exeC(mode, nfqCoonfig, protocol, port)
 	}
 
