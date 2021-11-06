@@ -15,7 +15,7 @@ import (
 	nfqueue "github.com/florianl/go-nfqueue"
 )
 
-func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int){
+func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType string){
 	//check if nfqCoonfig is in the allowed range
 	if(nfqCoonfig < 1 || nfqCoonfig > 65535){
 		fmt.Println("Invalid argument for flag -nfq, the value need to be between 1 and 65535")
@@ -39,36 +39,26 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int){
 		fmt.Println("Invalid argument for flag -dport, the value need to be between 1 and 65535")
 		os.Exit(127)
 	}
+
+	//check if the input type is righe
+	if(inType != "c" && inType != "j"){
+		fmt.Println("Invalid argument for flag -t, must be set to 'c' or 'j'")
+		os.Exit(127)
+	}
 }
 
-func main() {
-	// Send ingoing packets to nfqueue queue 100
-	// $ sudo iptables -I INPUT -p tcp --dport 12345 -j NFQUEUE --queue-num 100
+func execJson(){
 
-	//flag specifications
-	var nfqFlag = flag.Int("nfq", 100, "Queue number")
-	var modeFlag = flag.String("mode", "b", "Whitelist or Blacklist")
-	var protocolFlag = flag.String("p", "tcp", "Protocol tcp or udp")
-	var dportFlag = flag.Int("dport", 8080, "Destination port number")
-	flag.Parse()
+}
 
-	//some change for the flags
-	nfqCoonfig := uint16(*nfqFlag)
-	mode := *modeFlag
-	protocol := *protocolFlag
-	port := *dportFlag
-
-	//checks flags
-	checkFlag(mode, nfqCoonfig, protocol, port)
-
-	//ADD iptables rule
+func exeC(mode string, nfqCoonfig uint16, protocol string, port int){
+//ADD iptables rule
 	cmd := exec.Command("iptables", "-I", "INPUT", "-p", protocol, "--dport", strconv.FormatInt(int64(port), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
 	_, err := cmd.Output()
 	if err != nil {
         fmt.Println("The program must be run as root")
         os.Exit(126)
     }
-
 
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
@@ -142,5 +132,35 @@ func main() {
 
 	// Block till the context expires
 	<-ctx.Done()
+}
+
+func main() {
+	// Send ingoing packets to nfqueue queue 100
+	// $ sudo iptables -I INPUT -p tcp --dport 12345 -j NFQUEUE --queue-num 100
+
+	//flag specifications
+	var inTypeFlag = flag.String("t", "c", "Type of input, 'j' for json or 'c' for command line (if j is chosse all the other flash are ignored")
+	var nfqFlag = flag.Int("nfq", 100, "Queue number")
+	var modeFlag = flag.String("mode", "b", "Whitelist or Blacklist")
+	var protocolFlag = flag.String("p", "tcp", "Protocol tcp or udp")
+	var dportFlag = flag.Int("dport", 8080, "Destination port number")
+	flag.Parse()
+
+	//some change for the flags
+	inType := *inTypeFlag
+	nfqCoonfig := uint16(*nfqFlag)
+	mode := *modeFlag
+	protocol := *protocolFlag
+	port := *dportFlag
+
+	//checks flags
+	checkFlag(mode, nfqCoonfig, protocol, port, inType)
+
+	if(inType == "j"){
+		execJson()
+	} else {
+		exeC(mode, nfqCoonfig, protocol, port)
+	}
+
 }
 
