@@ -64,7 +64,7 @@ Sample configuration file
         "protocol": "udp",
         "dport": 8080,
         "regexList": [
-          "malicius"
+          "(malicius)"
         ]
       },
       {
@@ -74,7 +74,7 @@ Sample configuration file
         "protocol": "udp",
         "dport": 8181,
         "regexList": [
-          "safe"
+          "(safe)"
         ]
       }
     ]

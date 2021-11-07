@@ -7,7 +7,7 @@
         "protocol": "udp",
         "dport": 8080,
         "regexList": [
-          "es1"
+          "(es1)"
         ]
       },
       {
@@ -17,7 +17,7 @@
         "protocol": "udp",
         "dport": 8181,
         "regexList": [
-          "es2"
+          "(es2)"
         ]
       }
     ]
