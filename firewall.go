@@ -48,7 +48,7 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType
 	}
 }
 
-func execJson(){
+func execJson(path string){
 	//loop for create iptables rules
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
@@ -137,10 +137,11 @@ func main() {
 	// $ sudo iptables -I INPUT -p tcp --dport 12345 -j NFQUEUE --queue-num 100
 
 	//flag specifications
-	var inTypeFlag = flag.String("t", "c", "Type of input, 'j' for json or 'c' for command line (if j is chosse all the other flash are ignored")
+	var inTypeFlag = flag.String("t", "c", "Type of input, 'j' for json or 'c' for command line (if j is choosen, only the path flag is considered")
+	var pathFlag = flag.String("path", "./config.json", "Path to the json config file")
 	var nfqFlag = flag.Int("nfq", 100, "Queue number")
-	var modeFlag = flag.String("mode", "b", "Whitelist or Blacklist")
-	var protocolFlag = flag.String("p", "tcp", "Protocol tcp or udp")
+	var modeFlag = flag.String("mode", "b", "Whitelist(w) or Blacklist(b)")
+	var protocolFlag = flag.String("p", "tcp", "Protocol 'tcp' or 'udp'")
 	var dportFlag = flag.Int("dport", 8080, "Destination port number")
 	flag.Parse()
 
@@ -150,12 +151,13 @@ func main() {
 	mode := *modeFlag
 	protocol := *protocolFlag
 	port := *dportFlag
+	path := *pathFlag
 
 	//checks flags
 	checkFlag(mode, nfqCoonfig, protocol, port, inType)
 
 	if(inType == "j"){
-		execJson(/*JSON*/)
+		execJson(path)
 	} else {
 		//capture ctrl+c
 		c := make(chan os.Signal, 1)
