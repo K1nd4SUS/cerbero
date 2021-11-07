@@ -16,7 +16,7 @@ import (
 	nfqueue "github.com/florianl/go-nfqueue"
 )
 
-func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType string){
+func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType string, path string){
 	//check if nfqCoonfig is in the allowed range
 	if(nfqCoonfig < 1 || nfqCoonfig > 65535){
 		fmt.Println("Invalid argument for flag -nfq, the value need to be between 1 and 65535")
@@ -44,6 +44,12 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType
 	//check if the input type is righe
 	if(inType != "c" && inType != "j"){
 		fmt.Println("Invalid argument for flag -t, must be set to 'c' or 'j'")
+		os.Exit(127)
+	}
+
+	_, err := os.Open(path)
+	if (err != nil){
+		fmt.Println("File not found")
 		os.Exit(127)
 	}
 }
@@ -154,7 +160,7 @@ func main() {
 	path := *pathFlag
 
 	//checks flags
-	checkFlag(mode, nfqCoonfig, protocol, port, inType)
+	checkFlag(mode, nfqCoonfig, protocol, port, inType, path)
 
 	if(inType == "j"){
 		execJson(path)
