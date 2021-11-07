@@ -47,11 +47,14 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType
 		os.Exit(127)
 	}
 
-	_, err := os.Open(path)
-	if (err != nil){
-		fmt.Println("File not found")
-		os.Exit(127)
+	if (inType == "j"){
+		_, err := os.Open(path)
+		if (err != nil){
+			fmt.Println("File not found")
+			os.Exit(127)
 	}
+	}
+	
 }
 
 func execJson(path string){
