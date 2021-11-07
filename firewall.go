@@ -77,7 +77,7 @@ func execJson(path string){
 
 }
 
-func exeC(mode string, nfqCoonfig uint16, protocol string, port int){
+func exeC(mode string, nfqCoonfig uint16, protocol string, port int, regex string){
 
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
@@ -96,7 +96,7 @@ func exeC(mode string, nfqCoonfig uint16, protocol string, port int){
 	defer nf.Close()
 
 	ctx:= context.Background()
-	reg, _ := regexp.Compile(`(ciao)|(s[0-9]+)`)
+	reg, _ := regexp.Compile(regex)
 
 	fn := func(a nfqueue.Attribute) int {
 		id := *a.PacketID
@@ -152,6 +152,7 @@ func main() {
 	var modeFlag = flag.String("mode", "b", "Whitelist(w) or Blacklist(b)")
 	var protocolFlag = flag.String("p", "tcp", "Protocol 'tcp' or 'udp'")
 	var dportFlag = flag.Int("dport", 8080, "Destination port number")
+	var regexFlag = flag.String("r", "", "Regex to match, follow this format: '(regex1)|(regex2)|...'")
 	flag.Parse()
 
 	//some change for the flags
@@ -161,6 +162,7 @@ func main() {
 	protocol := *protocolFlag
 	port := *dportFlag
 	path := *pathFlag
+	regex := *regexFlag
 
 	//checks flags
 	checkFlag(mode, nfqCoonfig, protocol, port, inType, path)
@@ -186,7 +188,7 @@ func main() {
 			fmt.Println("The program must be run as root")
 			os.Exit(126)
 		}
-		exeC(mode, nfqCoonfig, protocol, port)
+		exeC(mode, nfqCoonfig, protocol, port, regex)
 	}
 
 }
