@@ -2,19 +2,35 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	nfqueue "github.com/florianl/go-nfqueue"
 )
+
+type Services struct {
+	Services []Service `json:"services"`
+}
+
+type Service struct {
+	Name string `json:"name"`
+	Nfq int `json:"nfq"`
+	Mode string `json:"mode"`
+	Protocol string `json:"protocol"`
+	Dport int `json:"dport"`
+	RegexList []string `json:"regexList"`
+}
 
 func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType string, path string){
 	//check if nfqCoonfig is in the allowed range
@@ -58,27 +74,46 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType
 }
 
 func execJson(path string){
+	jsonFile, _ := os.Open(path)
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+
+	var services Services
+	json.Unmarshal(byteValue, &services)
+
 	//loop for create iptables rules
+	for k:= 0; k<len(services.Services); k++{
+		cmd := exec.Command("iptables", "-I", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
+		cmd.Run()
+	}
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func(){
 		<-c
 		fmt.Println("\nRemoving iptables rule")
 		//loop for delete iptables rules
-		//cmd := exec.Command("iptables", "-D", "INPUT", "-p", protocol, "--dport", strconv.FormatInt(int64(port), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(nfqCoonfig), 10))
-		//cmd.Run()
+		for k:= 0; k<len(services.Services); k++{
+			cmd := exec.Command("iptables", "-D", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
+			cmd.Run()
+		}
 		fmt.Println("Done!")
 		os.Exit(0)
 	}()	
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(len(services.Services))
 	//loop for start the go routines with exeC
+	for k:= 0; k<len(services.Services); k++{
+		go func(k int, services Services){
+			exeC(services.Services[k].Mode, uint16(services.Services[k].Nfq), services.Services[k].Protocol, services.Services[k].Dport, strings.Join(services.Services[k].RegexList,"|"), k)
+		}(k, services)
+	}
 	wg.Wait()
 
 }
 
-func exeC(mode string, nfqCoonfig uint16, protocol string, port int, regex string){
-
+func exeC(mode string, nfqCoonfig uint16, protocol string, port int, regex string, number int){
+	fmt.Println("Services -> ", number)
+	fmt.Println("Regex -> ", regex)
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
 		NfQueue:      nfqCoonfig,
@@ -106,19 +141,19 @@ func exeC(mode string, nfqCoonfig uint16, protocol string, port int, regex strin
 		
 		if(mode == "b"){ //blacklist (if there is a match with the regex, drop the packet)
 			if(reg.MatchString(payloadString)){
-				log.Print("DROP")
+				log.Print("DROP", " services -> ", number)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 			} else {
-				log.Print("ACCEPT")
+				log.Print("ACCEPT", " services -> ", number)
 				nf.SetVerdict(id, nfqueue.NfAccept)
 			}
 			fmt.Printf("%x\n", payloadString)
 		}else if (mode == "w"){ //whitelist (if there is a match with the regex, accept the packet)
 			if(reg.MatchString(payloadString)){
-				log.Print("ACCEPT")
+				log.Print("ACCEPT", " services -> ", number)
 				nf.SetVerdict(id, nfqueue.NfAccept)
 			} else {
-				log.Print("DROP")
+				log.Print("DROP", " services -> ", number)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 			}
 			fmt.Printf("%x\n", payloadString)
@@ -188,7 +223,7 @@ func main() {
 			fmt.Println("The program must be run as root")
 			os.Exit(126)
 		}
-		exeC(mode, nfqCoonfig, protocol, port, regex)
+		exeC(mode, nfqCoonfig, protocol, port, regex, 0)
 	}
 
 }
