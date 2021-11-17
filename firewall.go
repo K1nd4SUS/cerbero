@@ -104,14 +104,14 @@ func execJson(path string){
 	//loop for start the go routines with exeC
 	for k:= 0; k<len(services.Services); k++{
 		go func(k int, services Services){
-			exeC(services.Services[k].Mode, uint16(services.Services[k].Nfq), services.Services[k].Protocol, services.Services[k].Dport, strings.Join(services.Services[k].RegexList,"|"), k)
+			exeC(services.Services[k].Mode, uint16(services.Services[k].Nfq), strings.Join(services.Services[k].RegexList,"|"), k)
 		}(k, services)
 	}
 	wg.Wait()
 
 }
 
-func exeC(mode string, nfqCoonfig uint16, protocol string, port int, regex string, number int){
+func exeC(mode string, nfqCoonfig uint16, regex string, number int){
 	fmt.Println("Services -> ", number)
 	fmt.Println("Regex -> ", regex)
 	// Set configuration options for nfqueue
@@ -223,7 +223,7 @@ func main() {
 			fmt.Println("The program must be run as root")
 			os.Exit(126)
 		}
-		exeC(mode, nfqCoonfig, protocol, port, regex, 0)
+		exeC(mode, nfqCoonfig, regex, 0)
 	}
 
 }
