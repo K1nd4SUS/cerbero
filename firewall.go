@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -73,13 +76,42 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType
 	
 }
 
-func execJson(path string){
+func hash(path string) (hash string){
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		log.Fatal(err)
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func watchFile(path string, canale chan string){
+	oldHash := hash(path)
+	for(true){
+	time.Sleep(5 * time.Second)
+	newHash := hash(path)
+	if (oldHash != newHash){
+		canale <- "-"
+		fmt.Println("File edited")
+	}
+	oldHash = newHash
+	}
+}
+
+func readJson(path string)(Services){
 	jsonFile, _ := os.Open(path)
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
 	var services Services
 	json.Unmarshal(byteValue, &services)
+	return services
+}
 
+func execJson(path string){
+	services := readJson(path)
 	//loop for create iptables rules
 	for k:= 0; k<len(services.Services); k++{
 		cmd := exec.Command("iptables", "-I", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
@@ -100,15 +132,97 @@ func execJson(path string){
 		os.Exit(0)
 	}()	
 	var wg sync.WaitGroup
-	wg.Add(len(services.Services))
-	//loop for start the go routines with exeC
+	alertFileEdited := make(chan string)
+	wg.Add(len(services.Services)+1)
+	//loop for start the go routines with exeJ
 	for k:= 0; k<len(services.Services); k++{
 		go func(k int, services Services){
-			exeC(services.Services[k].Mode, uint16(services.Services[k].Nfq), strings.Join(services.Services[k].RegexList,"|"), k)
+			exeJ(services, k, alertFileEdited, path)
 		}(k, services)
 	}
+	go func(){
+		watchFile(path, alertFileEdited)
+	}()
 	wg.Wait()
 
+}
+
+func exeJ(services Services, number int, alertFileEdited chan string, path string){
+	var mode string = services.Services[number].Mode
+	var nfqCoonfig uint16 = uint16(services.Services[number].Nfq)
+	var regex  = strings.Join(services.Services[number].RegexList,"|")
+
+	fmt.Println("Services -> ", number)
+	// fmt.Println("Regex -> ", regex)
+	// Set configuration options for nfqueue
+	config := nfqueue.Config{
+		NfQueue:      nfqCoonfig,
+		MaxPacketLen: 0xFFFF,
+		MaxQueueLen:  0xFF,
+		Copymode:     nfqueue.NfQnlCopyPacket,
+		WriteTimeout: 15 * time.Millisecond,
+	}
+
+	nf, err := nfqueue.Open(&config)
+	if err != nil {
+		fmt.Println("could not open nfqueue socket:", err)
+		return
+	}
+	defer nf.Close()
+
+	ctx:= context.Background()
+	reg, _ := regexp.Compile(regex)
+
+	fn := func(a nfqueue.Attribute) int {
+		select {
+			// if the json is updated, update the regex
+			case <- alertFileEdited:
+				services = readJson(path) 
+				regex = strings.Join(services.Services[number].RegexList,"|")
+				reg, _ = regexp.Compile(regex)
+			default:
+		}
+		
+		id := *a.PacketID
+		payload := make([]byte, len(*a.Payload))
+		copy(payload, *a.Payload)
+		payloadString := string(payload)
+		
+		if(mode == "b"){ //blacklist (if there is a match with the regex, drop the packet)
+			if(reg.MatchString(payloadString)){
+				log.Print("DROP", " services -> ", number)
+				nf.SetVerdict(id, nfqueue.NfDrop)
+			} else {
+				log.Print("ACCEPT", " services -> ", number)
+				nf.SetVerdict(id, nfqueue.NfAccept)
+			}
+			fmt.Printf("%x\n", payloadString)
+		}else if (mode == "w"){ //whitelist (if there is a match with the regex, accept the packet)
+			if(reg.MatchString(payloadString)){
+				log.Print("ACCEPT", " services -> ", number)
+				nf.SetVerdict(id, nfqueue.NfAccept)
+			} else {
+				log.Print("DROP", " services -> ", number)
+				nf.SetVerdict(id, nfqueue.NfDrop)
+			}
+			fmt.Printf("%x\n", payloadString)
+		}
+		return 0
+	}
+
+	r := func(e error) int {
+		fmt.Println("Error")
+		return 0
+	}
+
+	err = nf.RegisterWithErrorFunc(ctx, fn, r)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Block till the context expires
+	<-ctx.Done()
 }
 
 func exeC(mode string, nfqCoonfig uint16, regex string, number int){
