@@ -234,8 +234,7 @@ func exeJ(services Services, number int, alertFileEdited chan string, path strin
 	<-ctx.Done()
 }
 
-func exeC(mode string, nfqCoonfig uint16, regex string, number int){
-	fmt.Println("Services -> ", number)
+func exeC(mode string, nfqCoonfig uint16, regex string, protocol strin){
 	fmt.Println("Regex -> ", regex)
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
@@ -262,24 +261,28 @@ func exeC(mode string, nfqCoonfig uint16, regex string, number int){
 		copy(payload, *a.Payload)
 		payloadString := string(payload)
 		
+		//calculate offset for ignore IP and TCP/UPD headers
+		var offset int
+		if (protocol == "udp"){
+			offset = 20 + 8
+		} else if (protocol == "tcp"){
+			offset = 20 + ((int(payload[32:33][0]) >> 4)*32)/8
+		}
+
 		if(mode == "b"){ //blacklist (if there is a match with the regex, drop the packet)
-			if(reg.MatchString(payloadString)){
-				log.Print("DROP", " services -> ", number)
+			if(reg.MatchString(payloadString[offset:])){
 				nf.SetVerdict(id, nfqueue.NfDrop)
 			} else {
-				log.Print("ACCEPT", " services -> ", number)
 				nf.SetVerdict(id, nfqueue.NfAccept)
 			}
-			fmt.Printf("%x\n", payloadString)
+			fmt.Printf("%x\n", payloadString[offset:])
 		}else if (mode == "w"){ //whitelist (if there is a match with the regex, accept the packet)
-			if(reg.MatchString(payloadString)){
-				log.Print("ACCEPT", " services -> ", number)
+			if(reg.MatchString(payloadString[offset:])){
 				nf.SetVerdict(id, nfqueue.NfAccept)
 			} else {
-				log.Print("DROP", " services -> ", number)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 			}
-			fmt.Printf("%x\n", payloadString)
+			fmt.Printf("%x\n", payloadString[offset:])
 		}
 		return 0
 	}
@@ -346,7 +349,7 @@ func main() {
 			fmt.Println("The program must be run as root")
 			os.Exit(126)
 		}
-		exeC(mode, nfqCoonfig, regex, 0)
+		exeC(mode, nfqCoonfig, regex, protocol)
 	}
 
 }
