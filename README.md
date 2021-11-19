@@ -25,7 +25,7 @@ Probably not, but we do not take any responsibility for its use .
 2. Choose between two starting method: CLI or JSON
 
 ```
-Usage of ./firewall:
+Usage of ./cerbero:
   -dport int
         Destination port number (default 8080)
   -mode string
@@ -45,13 +45,13 @@ Usage of ./firewall:
 ### CLI
 Example
 ```console
-$ sudo ./firewall -t c -dport 12345 -mode b -nfq 101 -p udp -r '(malicius)'
+$ sudo ./cerbero -t c -dport 12345 -mode b -nfq 101 -p udp -r '(malicius)'
 ```
 In this way the tools is going to filter all the packets with destination port `12345`, protocol `udp` and that contain the word `maliciust`
 
 ### JSON
 ```console
-$ sudo ./firewall -t j
+$ sudo ./cerbero -t j
 ```
 Sample configuration file 
 ```json
