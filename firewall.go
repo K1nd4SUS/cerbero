@@ -234,7 +234,7 @@ func exeJ(services Services, number int, alertFileEdited chan string, path strin
 	<-ctx.Done()
 }
 
-func exeC(mode string, nfqCoonfig uint16, regex string, protocol strin){
+func exeC(mode string, nfqCoonfig uint16, regex string, protocol string){
 	fmt.Println("Regex -> ", regex)
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
