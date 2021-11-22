@@ -12,12 +12,21 @@
 
 
 body{
+    background-image: url("Wallpaper3.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    height: 100%; 
     background-color: #141a26;
     /* background-image: radial-gradient(#165763 1%, transparent 3%),
         radial-gradient(#165763 1%, transparent 1%);
     background-position: 0 0, 50px 50px;
     background-size: 100px 100px; */
 }
+
+img {
+    width: 40%;
+    height: auto;
+  }
 
 .serviceCard{
     background-color: #1CF0FB;
