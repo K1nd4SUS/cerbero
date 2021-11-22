@@ -14,7 +14,7 @@
         "name": "Service 2",
         "nfq": 101,
         "mode": "b",
-        "protocol": "udp",
+        "protocol": "tcp",
         "dport": 8181,
         "regexList": [
           "(es2)"
