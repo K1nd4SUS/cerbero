@@ -1,6 +1,6 @@
 # Cerbero - A packet filtering tool
 
-![GitHub_banner](https://user-images.githubusercontent.com/23193188/140656404-5ae9dc4a-ac35-40f0-aa7d-b2869e694a28.png)
+![GitHub_banner](https://user-images.githubusercontent.com/23193188/142950155-5d2e00a6-7c9f-42db-9cdf-e28783e66f30.gif)
 
 ---
 ### Description
