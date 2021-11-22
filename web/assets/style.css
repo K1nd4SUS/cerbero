@@ -1,0 +1,36 @@
+@font-face {
+    font-family: 'White Rabbit';
+    src: url('./WhiteRabbit.woff2');
+    
+}
+
+* {
+    font-size: 18px;
+    font-family: 'White Rabbit';
+    text-shadow: 0 0 6px #1CF0FB;
+}
+
+
+body{
+    background-color: #141a26;
+    background-image: radial-gradient(#165763 1%, transparent 3%),
+        radial-gradient(#165763 1%, transparent 1%);
+    background-position: 0 0, 50px 50px;
+    background-size: 100px 100px;
+}
+
+.serviceCard{
+    background-color: #1CF0FB;
+    border-radius: 10px;
+}
+
+.portInfo{
+    color: #555b6e;
+}
+
+.protocolInfo{
+    background-color: #0f4c5c;
+    color: white;
+    padding: 0.3rem;
+    border-radius: 5px;
+}
