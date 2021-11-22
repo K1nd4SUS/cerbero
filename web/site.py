@@ -19,11 +19,9 @@ service = """
 			<p class="portInfo">##PORT##</p>
 		</div>
 	</div>
-	<ol id="olTest">
-		<li>Rule1</li>
-		<li>Rule2</li>
-		<li>Rule3</li>
-	</ol>
+	<ul>
+		##RULE##
+	</ul>
 	<div class="row">
 		<form action="">
 			<input type="text" name="" id="s1" placeholder="New rule">
@@ -43,6 +41,11 @@ def hello():
         elif k['mode'] == "w":
             mode = "WHITELIST"
         services += service.replace("##NAME##", k['name']).replace("##PROTOCOL##", k['protocol'].upper()).replace("##PORT##", str(k['dport'])).replace("##MODE##", mode)
+        rule = ""
+        for r in k['regexList']:
+            rule += f"<li>{r[1:-1]}</li>"
+        services = services.replace("##RULE##", rule)
+
     return render_template('index.html', services=services)
     
 
