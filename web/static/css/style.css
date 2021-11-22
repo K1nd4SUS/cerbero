@@ -1,6 +1,6 @@
 @font-face {
     font-family: 'White Rabbit';
-    src: url('./WhiteRabbit.woff2');
+    src: url('WhiteRabbit.woff2');
     
 }
 
@@ -13,10 +13,10 @@
 
 body{
     background-color: #141a26;
-    background-image: radial-gradient(#165763 1%, transparent 3%),
+    /* background-image: radial-gradient(#165763 1%, transparent 3%),
         radial-gradient(#165763 1%, transparent 1%);
     background-position: 0 0, 50px 50px;
-    background-size: 100px 100px;
+    background-size: 100px 100px; */
 }
 
 .serviceCard{
