@@ -196,9 +196,12 @@ func exeJ(services Services, number int, alertFileEdited chan string, path strin
 		} else if (protocol == "tcp"){
 			offset = 20 + ((int(payload[32:33][0]) >> 4)*32)/8
 		}
-
+		// log.Print("Regex -> ", regex, " services -> ", number)
+		// log.Print("Regex len -> ", len(regex), " services -> ", number)
 		if(mode == "b"){ //blacklist (if there is a match with the regex, drop the packet)
-			if(reg.MatchString(payloadString[offset:])){
+			if (len(regex) == 0){
+				nf.SetVerdict(id, nfqueue.NfAccept)
+			} else if(reg.MatchString(payloadString[offset:])){
 				log.Print("DROP", " services -> ", number)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 			} else {
