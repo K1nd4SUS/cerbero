@@ -10,7 +10,7 @@ This tool can filter packets based on the payload. The match is made with regex 
 During an A/D, we often had to drop some malicious packets, but to do it properly we had to understand how the service worked and in which programming language it was written. This process is a waste of time. With this tool we can instead drop the malicious packets before they are received from the vulnerable service, making the process simple and implementation agnostic (basically it works like a WAP that process all packets).
 
 ### Why GO?
-Because [M4RC02U1F4A4](https://github.com/M4RC02U1F4A4) wanted to learn GO, and also the library [nfqueue](https://pkg.go.dev/github.com/florianl/go-nfqueue) was easy to use.
+Because [MΛRC02U1F4A4](https://github.com/M4RC02U1F4A4) wanted to learn GO, and also the library [nfqueue](https://pkg.go.dev/github.com/florianl/go-nfqueue) was easy to use.
 
 ### Is it against the rules to use this tool? 
 Probably not, but we do not take any responsibility for its use .
@@ -80,3 +80,43 @@ Sample configuration file
     ]
 }
 ```
+---
+
+### A/D Setup - DOCKER
+
+1. Clone the repo
+```console
+local$ git clone git@github.com:K1nd4SUS/Cerbero.git
+```
+2. Change folder
+```console
+local$ cd Cerbero
+```
+3. Compile `cerbero`
+```console
+local& $ go build -o cerbero firewall.go
+```
+4. Edit `config.json` with the services informations
+5. Insert into `docker-compose.yml` IP (`VULNBOX_IP`) and PASSWORD (`VULNBOX_PW`) for the `root` account of the vulnbox
+6. Start the container
+```console
+local$ docker-compose up --build -d
+```
+7. All files will have appeared on the vulnbox
+```console
+vulnbox$ ls
+cerbero
+vulnbox$ cd cerbero/
+vulnbox$ ls
+cerbero  config.json  start_cerbero
+```
+8. Start `cerbero` on the `vulnbox`
+```console
+vulnbox$ ./start_cerbero
+```
+9. Access the WebGUI on your local machine via `localhost:51645`
+
+---
+
+> Developed by [MΛRC02U1F4A4](https://github.com/M4RC02U1F4A4) \
+> Thanks to [Tiziano Radicchi](https://github.com/tiz314) for the help with the web interface
