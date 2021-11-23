@@ -33,7 +33,7 @@ service = """
 
 @app.route('/')
 def hello():
-    with open("../config.json", "r") as f:
+    with open("config.json", "r") as f:
         data = json.load(f)
     services = ""
     for k in data['services']:
@@ -52,7 +52,7 @@ def hello():
 @app.route('/jsonUpdater/<path:service>', methods=['POST'])
 def jsonUpdate(service):
     regex = "(" + request.form.get('regex') + ")"
-    with open("../config.json", "r") as f:
+    with open("config.json", "r") as f:
         data = json.load(f)
     
     # find the right service
@@ -66,16 +66,16 @@ def jsonUpdate(service):
         if(rule == regex):
             #remove
             data['services'][index]['regexList'].remove(rule)
-            with open('../config.json', 'w') as json_file:
+            with open('config.json', 'w') as json_file:
                 json.dump(data, json_file)
                 return redirect("/")
 
     data['services'][index]['regexList'].append(regex)
-    with open('../config.json', 'w') as json_file:
+    with open('config.json', 'w') as json_file:
         json.dump(data, json_file)
     return redirect("/")
 
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=8080)
+    app.run(debug=False, host='0.0.0.0', port=5000)
