@@ -1,0 +1,10 @@
+version: '3.7'
+services:
+  app:
+    build: .
+    restart: always
+    environment:
+      - VULNBOX_IP=
+      - VULNBOX_PW=
+    ports:
+      - 51645:5000
