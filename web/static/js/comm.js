@@ -2,7 +2,7 @@ const interval = setInterval(function() {
     window.location.reload();
 }, 5000); 
  
-// clearInterval(interval);
+clearInterval(interval);
 
 function send_rules(servURL, params, method) {
     method = method || "post";
