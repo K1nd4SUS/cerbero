@@ -45,9 +45,9 @@ Usage of ./cerbero:
 ### CLI
 Example
 ```console
-$ sudo ./cerbero -t c -dport 12345 -mode b -nfq 101 -p udp -r '(malicius)'
+$ sudo ./cerbero -t c -dport 12345 -mode b -nfq 101 -p udp -r '(malicious)'
 ```
-In this way the tools is going to filter all the packets with destination port `12345`, protocol `udp` and that contain the word `maliciust`
+In this way the tools is going to filter all the packets with destination port `12345`, protocol `udp` and that contain the word `malicious`
 
 ### JSON
 ```console
