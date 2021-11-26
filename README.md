@@ -94,7 +94,7 @@ local$ cd Cerbero
 ```
 3. Compile `cerbero`
 ```console
-local& $ go build -o cerbero firewall.go
+local$ go build -o cerbero firewall.go
 ```
 4. Edit `config.json` with the services informations
 5. Insert into `docker-compose.yml` IP (`VULNBOX_IP`) and PASSWORD (`VULNBOX_PW`) for the `root` account of the vulnbox
