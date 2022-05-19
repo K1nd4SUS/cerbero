@@ -97,8 +97,9 @@ local$ cd Cerbero
 local$ go build -o cerbero firewall.go
 ```
 4. Edit `config.json` with the services informations
-5. Insert into `docker-compose.yml` IP (`VULNBOX_IP`) and PASSWORD (`VULNBOX_PW`) for the `root` account of the vulnbox
-6. Start the container
+5. Insert into `docker-compose.yml` the IP (`VULNBOX_IP`)
+6. Generate a pair of ssh keys (`ssh-keygen -t ed25519`) to allow the container to authenticat with the vulnbox
+7. Start the container
 ```console
 local$ docker-compose up --build -d
 ```
@@ -115,6 +116,8 @@ cerbero  config.json  start_cerbero
 vulnbox$ ./start_cerbero
 ```
 9. Access the WebGUI on your local machine via `localhost:51645`
+
+### Point 7 is very important, DON'T USE THE KEYS IN THE REPO!!!
 
 ---
 

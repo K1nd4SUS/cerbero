@@ -9,17 +9,21 @@ class  MyHandler(FileSystemEventHandler):
    def  on_modified(self,  event):
       if event.src_path == "config.json":
          print(f'File modificato')
-         subprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "rsync", "-v", "-r", "config.json", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
+         subprocess.run(["rsync", "-v", "-r", "config.json", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
 
 if __name__ ==  "__main__":
    print("Creating cerbero folder...")
-   subprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "ssh", "-o StrictHostKeyChecking=no", f"root@{os.getenv('VULNBOX_IP')}", "mkdir", "cerbero"])
+   # subprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "ssh", "-o StrictHostKeyChecking=no", f"root@{os.getenv('VULNBOX_IP')}", "mkdir", "cerbero"])
+   subprocess.run(["ssh", "-o StrictHostKeyChecking=no", f"root@{os.getenv('VULNBOX_IP')}", "mkdir", "cerbero"])
    print("Copy cerbero executable")
-   subprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "rsync", "-v", "-r", "cerbero", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
+   # subprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "rsync", "-v", "-r", "cerbero", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
+   subprocess.run(["rsync", "-v", "-r", "cerbero", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
    print("Copy start_cerbero")
-   subprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "rsync", "-v", "-r", "start_cerbero", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
+   # subprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "rsync", "-v", "-r", "start_cerbero", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
+   subprocess.run(["rsync", "-v", "-r", "start_cerbero", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
    print("Copy config.json")
-   subprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "rsync", "-v", "-r", "config.json", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
+   # subprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "rsync", "-v", "-r", "config.json", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
+   subprocess.run(["rsync", "-v", "-r", "config.json", f"root@{os.getenv('VULNBOX_IP')}:/root/cerbero"])
 
    # ubprocess.run(["sshpass", "-p", f"{os.getenv('VULNBOX_PW')}", "ssh", "-o StrictHostKeyChecking=no", f"root@{os.getenv('VULNBOX_IP')}", "/root/cerbero/cerbero", "-t", "j", ">>", "log"]) 
 
@@ -34,3 +38,5 @@ if __name__ ==  "__main__":
    except  KeyboardInterrupt:
       observer.stop()
       observer.join()
+
+

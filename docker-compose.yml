@@ -4,7 +4,6 @@ services:
     build: .
     restart: always
     environment:
-      - VULNBOX_IP=
-      - VULNBOX_PW=
+      - VULNBOX_IP=192.168.1.204
     ports:
       - 51645:5000
