@@ -137,7 +137,7 @@ func execJson(path string){
 	//loop for start the go routines with exeJ
 	for k:= 0; k<len(services.Services); k++{
 		go func(k int, services Services){
-			exeJ(services, k, alertFileEdited, path)
+			exeJ(services, k, alertFileEdited, path, services.Services[k].Name)
 		}(k, services)
 	}
 	go func(){
@@ -147,13 +147,13 @@ func execJson(path string){
 
 }
 
-func exeJ(services Services, number int, alertFileEdited chan string, path string){
+func exeJ(services Services, number int, alertFileEdited chan string, path string, name string){
 	var mode string = services.Services[number].Mode
 	var nfqCoonfig uint16 = uint16(services.Services[number].Nfq)
 	var regex  = strings.Join(services.Services[number].RegexList,"|")
 	var protocol = services.Services[number].Protocol
 
-	fmt.Println("Services -> ", number)
+	fmt.Println("Services -> ", name)
 	// fmt.Println("Regex -> ", regex)
 	// Set configuration options for nfqueue
 	config := nfqueue.Config{
@@ -196,25 +196,24 @@ func exeJ(services Services, number int, alertFileEdited chan string, path strin
 		} else if (protocol == "tcp"){
 			offset = 20 + ((int(payload[32:33][0]) >> 4)*32)/8
 		}
-		// log.Print("Regex -> ", regex, " services -> ", number)
-		// log.Print("Regex len -> ", len(regex), " services -> ", number)
+
 		if(mode == "b"){ //blacklist (if there is a match with the regex, drop the packet)
 			if (len(regex) == 0){
 				nf.SetVerdict(id, nfqueue.NfAccept)
 			} else if(reg.MatchString(payloadString[offset:])){
-				log.Print("DROP", " services -> ", number)
+				log.Print("DROP", " services -> ", name)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 			} else {
-				// log.Print("ACCEPT", " services -> ", number)
+				// log.Print("ACCEPT", " services -> ", name)
 				nf.SetVerdict(id, nfqueue.NfAccept)
 			}
 			// fmt.Printf("%x\n", payloadString[offset:])
 		}else if (mode == "w"){ //whitelist (if there is a match with the regex, accept the packet)
 			if(reg.MatchString(payloadString[offset:])){
-				// log.Print("ACCEPT", " services -> ", number)
+				// log.Print("ACCEPT", " services -> ", name)
 				nf.SetVerdict(id, nfqueue.NfAccept)
 			} else {
-				log.Print("DROP", " services -> ", number)
+				log.Print("DROP", " services -> ", name)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 			}
 			// fmt.Printf("%x\n", payloadString[offset:])
