@@ -98,7 +98,7 @@ local$ go build -o cerbero firewall.go
 ```
 4. Edit `config.json` with the services informations
 5. Insert into `docker-compose.yml` the IP (`VULNBOX_IP`)
-6. Generate a pair of ssh keys (`ssh-keygen -t ed25519`) to allow the container to authenticat with the vulnbox
+6. Generate a pair of ssh keys (`ssh-keygen -t ed25519`) to allow the container to authenticate with the vulnbox
 7. Start the container
 ```console
 local$ docker-compose up --build -d
