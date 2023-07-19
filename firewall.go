@@ -27,14 +27,15 @@ type Services struct {
 }
 
 type Service struct {
-	Name string `json:"name"`
-	Nfq int `json:"nfq"`
-	Mode string `json:"mode"`
-	Protocol string `json:"protocol"`
-	Dport int `json:"dport"`
-	RegexList []string `json:"regexList"`
+	Name		string 		`json:"name"`
+	Nfq 		int 		`json:"nfq"`
+	Mode 		string 		`json:"mode"`
+	Protocol	string 		`json:"protocol"`
+	Dport 		int 		`json:"dport"`
+	RegexList	[]string	`json:"regexList"`
 }
 
+//check params validity
 func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType string, path string){
 	//check if nfqCoonfig is in the allowed range
 	if(nfqCoonfig < 1 || nfqCoonfig > 65535){
@@ -76,6 +77,7 @@ func checkFlag(mode string, nfqCoonfig uint16, protocol string, port int, inType
 	
 }
 
+//hash a string, given file path
 func hash(path string) (hash string){
 	f, err := os.Open(path)
 	if err != nil {
@@ -88,6 +90,7 @@ func hash(path string) (hash string){
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+//onModify
 func watchFile(path string, canale chan string){
 	oldHash := hash(path)
 	for(true){
@@ -101,6 +104,7 @@ func watchFile(path string, canale chan string){
 	}
 }
 
+//serialyze input
 func readJson(path string)(Services){
 	jsonFile, _ := os.Open(path)
 	byteValue, _ := ioutil.ReadAll(jsonFile)
@@ -117,7 +121,7 @@ func execJson(path string){
 		cmd := exec.Command("iptables", "-I", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
 		cmd.Run()
 	}
-
+	//prepare oninterrupt event
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func(){
@@ -131,7 +135,9 @@ func execJson(path string){
 		fmt.Println("Done!")
 		os.Exit(0)
 	}()	
+	//start waitgroup 
 	var wg sync.WaitGroup
+	//onmodify for json
 	alertFileEdited := make(chan string)
 	wg.Add(len(services.Services)+1)
 	//loop for start the go routines with exeJ
@@ -140,13 +146,16 @@ func execJson(path string){
 			exeJ(services, k, alertFileEdited, path, services.Services[k].Name)
 		}(k, services)
 	}
+	//launch onModify
 	go func(){
 		watchFile(path, alertFileEdited)
 	}()
+	//wait for all exeJ to be completed
 	wg.Wait()
 
 }
 
+//takes services struct, services.length, onModify, json for settings path, service name
 func exeJ(services Services, number int, alertFileEdited chan string, path string, name string){
 	var mode string = services.Services[number].Mode
 	var nfqCoonfig uint16 = uint16(services.Services[number].Nfq)
@@ -173,7 +182,7 @@ func exeJ(services Services, number int, alertFileEdited chan string, path strin
 
 	ctx:= context.Background()
 	reg, _ := regexp.Compile(regex)
-
+	//function executed for every packet in input
 	fn := func(a nfqueue.Attribute) int {
 		select {
 			// if the json is updated, update the regex
@@ -184,12 +193,16 @@ func exeJ(services Services, number int, alertFileEdited chan string, path strin
 			default:
 		}
 		
+		//take packet id
 		id := *a.PacketID
+		//allocate byte array for packet payload
 		payload := make([]byte, len(*a.Payload))
+		//copy packet payload to payload variable
 		copy(payload, *a.Payload)
+		//payload var stringify()
 		payloadString := string(payload)
 		
-		//calculate offset for ignore IP and TCP/UPD headers
+		//calculate offset for ignore IP and TCP/UDP headers
 		var offset int
 		if (protocol == "udp"){
 			offset = 20 + 8
@@ -225,7 +238,7 @@ func exeJ(services Services, number int, alertFileEdited chan string, path strin
 		fmt.Println("Error")
 		return 0
 	}
-
+	//add to nfqueue callback fn for every packet that matches the rules
 	err = nf.RegisterWithErrorFunc(ctx, fn, r)
 	if err != nil {
 		fmt.Println(err)
@@ -273,6 +286,7 @@ func exeC(mode string, nfqCoonfig uint16, regex string, protocol string){
 
 		if(mode == "b"){ //blacklist (if there is a match with the regex, drop the packet)
 			if(reg.MatchString(payloadString[offset:])){
+				//TODO: do not drop, modify flag
 				nf.SetVerdict(id, nfqueue.NfDrop)
 			} else {
 				nf.SetVerdict(id, nfqueue.NfAccept)
@@ -282,6 +296,7 @@ func exeC(mode string, nfqCoonfig uint16, regex string, protocol string){
 			if(reg.MatchString(payloadString[offset:])){
 				nf.SetVerdict(id, nfqueue.NfAccept)
 			} else {
+				//TODO: do not drop, modify flag
 				nf.SetVerdict(id, nfqueue.NfDrop)
 			}
 			fmt.Printf("%x\n", payloadString[offset:])
