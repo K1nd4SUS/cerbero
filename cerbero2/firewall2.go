@@ -37,7 +37,7 @@ type Service struct {
 	RegexList	[]string	`json:"regexList"`
 }
 
-//serialyze input
+//serialize input
 func readJson(path string)(Services){
 	jsonFile, _ := os.Open(path)
 	byteValue, _ := ioutil.ReadAll(jsonFile)
