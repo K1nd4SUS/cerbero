@@ -1,25 +1,27 @@
 package main
 
 import (
-	//"context"
-	//"crypto/sha256"
-	//"encoding/hex"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
-	//"fmt"
-	//"io"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
-	//"os/exec"
-	//"os/signal"
+	"os/exec"
+	"os/signal"
 	//"regexp"
-	//"strconv"
+	"strconv"
 	//"strings"
-	//"sync"
-	//"time"
+	"sync"
+	"time"
+	
+	//"fmt"
 
-	//nfqueue "github.com/florianl/go-nfqueue"
+	nfqueue "github.com/florianl/go-nfqueue"
+	ahocorasick "github.com/cloudflare/ahocorasick"
 )
 
 // structs
@@ -28,13 +30,22 @@ type Services struct {
 	Services []Service `json:"services"`
 }
 
+type Rule struct {
+	Type	string		`json:"type"`
+	Filters	[]string	`json:"filters"`
+}
+
+type Rules struct {
+	Blacklist []Rule	`json:"blacklist"`
+	Whitelist []Rule	`json:"whitelist"`
+}
+
 type Service struct {
 	Name		string 		`json:"name"`
 	Nfq 		uint16 		
-	Mode 		string 		`json:"mode"`
 	Protocol	string 		`json:"protocol"`
 	Dport 		int 		`json:"dport"`
-	RegexList	[]string	`json:"regexList"`
+	RulesList	Rules	`json:"rulesList"`
 }
 
 //serialize input
@@ -47,17 +58,38 @@ func readJson(path string)(Services){
 	return services
 }
 
+//hash a string, given file path
+func hash(path string) (hash string){
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		log.Fatal(err)
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+//onModify
+func watchFile(path string, canale chan string){
+	oldHash := hash(path)
+	for(true){
+		time.Sleep(5 * time.Second)
+		newHash := hash(path)
+		if (oldHash != newHash){
+			log.Println("Configuration file edited")
+			canale <- "-"
+		}
+		oldHash = newHash
+	}
+}
+
 //check params validity
 func checkParams(serv *Service, nfqConfig uint16){
 
 	// for every param, if param is not allowed the execution is terminated, else everything can go on
 	
-	//check if mode is allowed (must be "w" or "b")
-	if(serv.Mode != "w" && serv.Mode != "b"){
-		log.Println("Invalid argument for flag -mode, must be set to 'w' or 'b'")
-		os.Exit(127)
-	}
-
 	//checks if the procols is correct (must be "tcp" or "udp")
 	if(serv.Protocol != "tcp" && serv.Protocol != "udp"){
 		log.Println("Invalid argument for flag -p, must be set to 'tcp' or 'udp'")
@@ -107,47 +139,192 @@ func checkIn(path string, nfqConfig uint16)(Services){
 	return services
 }
 
-func execJson(services Services){
+
+//apply filters
+func fwFilter(services Services, number int, alertFileEdited chan string, path string){
+	
+	blacklist := services.Services[number].RulesList.Blacklist
+	whitelist := services.Services[number].RulesList.Whitelist
+	hasBlacklist := (len(blacklist)!=0)
+	hasWhitelist := (len(whitelist)!=0)
+	var nfqConfig uint16 = uint16(services.Services[number].Nfq)
+	var protocol string = services.Services[number].Protocol
+
+	//log.Println("Services -> ", name)
+	// log.Println("Regex -> ", regex)
+
+	// Set configuration options for nfqueue
+	config := nfqueue.Config{
+		NfQueue:      nfqConfig,
+		MaxPacketLen: 0xFFFF,
+		MaxQueueLen:  0xFF,
+		Copymode:     nfqueue.NfQnlCopyPacket,
+		WriteTimeout: 15 * time.Millisecond,
+	}
+
+	//se non riesce ad aprire il socket chiudi
+	nf, err := nfqueue.Open(&config)
+	if err != nil {
+		log.Println("could not open nfqueue socket:", err)
+		return
+	}
+	defer nf.Close()
+
+	ctx:= context.Background()
+
+	//TODO: controllare sta porcata
+	blacklistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
+	if hasBlacklist {
+		blacklistMatcher = ahocorasick.NewStringMatcher(blacklist[0].Filters)
+	} 
+
+	whitelistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
+	if hasWhitelist {
+		whitelistMatcher = ahocorasick.NewStringMatcher(whitelist[0].Filters)
+	} 
+
+	//function executed for every packet in input
+	fn := func(a nfqueue.Attribute) int {
+		select {
+			// if the json is updated, update the regex
+			case <- alertFileEdited:
+
+				services = readJson(path) 
+				blacklist = services.Services[number].RulesList.Blacklist
+				whitelist = services.Services[number].RulesList.Whitelist
+				hasBlacklist = (len(blacklist)!=0)
+				hasWhitelist = (len(whitelist)!=0)
+				//blacklistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
+				if hasBlacklist {
+					blacklistMatcher = ahocorasick.NewStringMatcher(blacklist[0].Filters)
+				} 
+
+				//whitelistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
+				if hasWhitelist {
+					whitelistMatcher = ahocorasick.NewStringMatcher(whitelist[0].Filters)
+				} 
+				
+			default:
+		}
+		
+		//take packet id
+		id := *a.PacketID
+
+		not_managed := true
+
+		//allocate byte array for packet payload
+		payload := make([]byte, len(*a.Payload))
+
+		//copy packet payload to payload variable
+		copy(payload, *a.Payload)
+
+		//payload var stringify()
+		payloadString := string(payload)
+		
+		//calculate offset for ignore IP and TCP/UDP headers
+		var offset int
+		if (protocol == "udp"){
+			offset = 20 + 8
+		} else if (protocol == "tcp"){
+			offset = 20 + ((int(payload[32:33][0]) >> 4)*32)/8
+		}
+
+		if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
+
+			if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
+				log.Println("packet dropped "+services.Services[number].Name)
+				nf.SetVerdict(id,nfqueue.NfDrop)
+				not_managed = false
+			}
+		}
+
+		if hasBlacklist && not_managed { //blacklist (if there is a match with the regex, drop the packet)
+
+			//log.Println([]byte(payloadString[offset:]))
+
+			if blacklistMatcher.Contains([]byte(payloadString[offset:])) {
+				log.Println("packet dropped "+services.Services[number].Name)
+				nf.SetVerdict(id,nfqueue.NfDrop)
+				not_managed = false
+			}
+		}
+		
+		if not_managed{
+			nf.SetVerdict(id,nfqueue.NfAccept)
+		}
+
+		return 0
+	}
+
+	r := func(e error) int {
+		log.Println("Error")
+		return 0
+	}
+	
+	//add to nfqueue callback fn for every packet that matches the rules
+	err = nf.RegisterWithErrorFunc(ctx, fn, r)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// Block till the context expires
+	<-ctx.Done()
+}
+
+
+
+
+// set rules on iptables and call fwFilter
+func setRules(services Services, path string){
 	for _,ser := range services.Services{
 		log.Println(ser)
 	}
-	// services := readJson(path)
-	// //loop for create iptables rules
-	// for k:= 0; k<len(services.Services); k++{
-	// 	cmd := exec.Command("iptables", "-I", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
-	// 	cmd.Run()
-	// }
-	// //prepare oninterrupt event
-	// c := make(chan os.Signal, 1)
-	// signal.Notify(c, os.Interrupt)
-	// go func(){
-	// 	<-c
-	// 	log.Println("\nRemoving iptables rule")
-	// 	//loop for delete iptables rules
-	// 	for k:= 0; k<len(services.Services); k++{
-	// 		cmd := exec.Command("iptables", "-D", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
-	// 		cmd.Run()
-	// 	}
-	// 	log.Println("Done!")
-	// 	os.Exit(0)
-	// }()	
-	// //start waitgroup 
-	// var wg sync.WaitGroup
-	// //onmodify for json
-	// alertFileEdited := make(chan string)
-	// wg.Add(len(services.Services)+1)
-	// //loop for start the go routines with exeJ
-	// for k:= 0; k<len(services.Services); k++{
-	// 	go func(k int, services Services){
-	// 		exeJ(services, k, alertFileEdited, path, services.Services[k].Name)
-	// 	}(k, services)
-	// }
-	// //launch onModify
-	// go func(){
-	// 	watchFile(path, alertFileEdited)
-	// }()
-	// //wait for all exeJ to be completed
-	// wg.Wait()
+
+	//loop for create iptables rules
+	for k:= 0; k<len(services.Services); k++{
+		cmd := exec.Command("iptables", "-I", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
+		cmd.Run()
+	}
+
+	//prepare oninterrupt event
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func(){
+		<-c
+		log.Println("\nRemoving iptables rule")
+		//loop for delete iptables rules
+		for k:= 0; k<len(services.Services); k++{
+			cmd := exec.Command("iptables", "-D", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
+			cmd.Run()
+		}
+		log.Println("Done!")
+		os.Exit(0)
+	}()
+
+	//start waitgroup 
+	var wg sync.WaitGroup
+
+	//onmodify for json
+	alertFileEdited := make(chan string)
+
+	//create waitgroup
+	wg.Add(len(services.Services)+1)
+
+	//loop for start the go routines with fwFilter
+	for k:= 0; k<len(services.Services); k++{
+		go func(k int, services Services){
+			fwFilter(services, k, alertFileEdited, path)
+		}(k, services)
+	}
+	
+	//launch onModify
+	go func(){
+		watchFile(path, alertFileEdited)
+	}()
+
+	//wait for all fwFilter to be completed
+	wg.Wait()
 
 }
 
@@ -177,7 +354,7 @@ func main() {
 	serviceList := checkIn(path, nfqConfig)
 
 	//here we will call a func that executes everything
-	execJson(serviceList)
+	setRules(serviceList,path)
 	
 
 }

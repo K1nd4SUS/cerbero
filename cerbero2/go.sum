@@ -1,4 +1,6 @@
 github.com/cilium/ebpf v0.5.0/go.mod h1:4tRaxcgiL706VnOzHOdBlY8IEAIdxINsQBcU4xJJXRs=
+github.com/cloudflare/ahocorasick v0.0.0-20210425175752-730270c3e184 h1:8yL+85JpbwrIc6m+7N1iYrjn/22z68jwrTIBOJHNe4k=
+github.com/cloudflare/ahocorasick v0.0.0-20210425175752-730270c3e184/go.mod h1:tGWUZLZp9ajsxUOnHmFFLnqnlKXsCn6GReG4jAD59H0=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/florianl/go-nfqueue v1.3.0 h1:cvZGUM6k1zxkokHM79Hg/q39cVjf3WAQZ/46ncpuhkc=
 github.com/florianl/go-nfqueue v1.3.0/go.mod h1:sA7IQtpB3zxpdwJ4y4999SjK+1lx91TEqBBB4CIlFX0=

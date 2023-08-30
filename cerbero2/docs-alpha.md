@@ -10,5 +10,8 @@ go run firewall2.go [--nfq 200] [--path ./config.json]
 oppure
 ```bash
 go build -o firewall
-./firewall [--ndq 200] [--path ./config.json]
+./firewall [--nfq 200] [--path ./config.json]
 ```
+
+> aggiungere script per test automatico del corretto setup
+> evitare in ogni modo il crash (es typo nella config salta il servizio e manda warning)

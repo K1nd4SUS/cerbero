@@ -1,0 +1,56 @@
+{
+    "services": [
+      {
+        "name": "Service 1",
+        "protocol": "tcp",
+        "dport": 8080,
+        "rulesList": {
+          "blacklist":[
+            
+          ],
+          "whitelist":[
+            {
+              "type":"regex",
+              "filters":[
+                "(es1)"
+              ]
+            },
+            {
+              "type":"base",
+              "filters":[
+                "64",
+                "32",
+                "58"
+              ]
+            } 
+          ]                   
+        }
+      },
+      {
+        "name": "Service 2",
+        "protocol": "tcp",
+        "dport": 8081,
+        "rulesList": {
+          "blacklist":[
+            {
+              "type":"regex",
+              "filters":[
+                "(es1)"
+              ]
+            },
+            {
+              "type":"base",
+              "filters":[
+                "64",
+                "32",
+                "58"
+              ]
+            } 
+          ],
+          "whitelist":[
+            
+          ]                   
+        }
+      }
+    ]
+}

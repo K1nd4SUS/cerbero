@@ -3,6 +3,7 @@ module starting
 go 1.17
 
 require (
+	github.com/cloudflare/ahocorasick v0.0.0-20210425175752-730270c3e184
 	github.com/florianl/go-nfqueue v1.3.0
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/josharian/native v0.0.0-20200817173448-b6b71def0850 // indirect
