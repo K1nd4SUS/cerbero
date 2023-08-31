@@ -5,7 +5,7 @@
       "protocol": "tcp",
       "dport": 8000,
       "rulesList": {
-        "blacklist":[
+        "blacklist": [
           {
             "type":"regex",
             "filters":[

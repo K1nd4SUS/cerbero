@@ -21,12 +21,13 @@ import (
 
 	//"fmt"
 
+	//gopacket "github.com/google/gopacket"
+	//layers "github.com/google/gopacket/layers"
 	ahocorasick "github.com/cloudflare/ahocorasick"
 	nfqueue "github.com/florianl/go-nfqueue"
 )
 
 // structs
-
 type Services struct {
 	Services []Service `json:"services"`
 }
@@ -51,7 +52,6 @@ type Service struct {
 
 // logs
 var warnings = make(chan string, 1)
-var errors = make(chan string, 1)
 var normal = make(chan string, 1)
 var infos = make(chan string, 1)
 var success = make(chan string, 1)
@@ -63,7 +63,7 @@ func printWarnings() {
 }
 func printSuccess() {
 	for msg := range success {
-		log.Println("\x1b[38;5;10m\t" + msg + "\033[0m") // orange
+		log.Println("\x1b[38;5;10m\t" + msg + "\033[0m") // green
 	}
 }
 func printInfos() {
@@ -71,10 +71,9 @@ func printInfos() {
 		log.Println("\x1b[38;5;51m\t" + msg + "\033[0m") // cyan
 	}
 }
-func printErrors() {
-	for msg := range errors {
-		log.Println("\x1b[38;5;1m\t" + msg + "\033[0m") // red
-	}
+func printErrors(msg string) {
+	log.Println("\x1b[38;5;1m\t" + msg + "\033[0m") // red
+	os.Exit(127)
 }
 func printNormal() {
 	for msg := range normal {
@@ -88,8 +87,13 @@ func readJson(path string) Services {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
 	var services Services
-	json.Unmarshal(byteValue, &services)
-	return services
+	if json.Valid(byteValue){
+		json.Unmarshal(byteValue, &services)
+		return services
+	}
+	warnings <- "An error was found in the config file!"
+	var noServices Services
+	return noServices
 }
 
 // hash a string, given file path
@@ -106,14 +110,14 @@ func hash(path string) (hash string) {
 }
 
 // onModify
-func watchFile(path string, canale chan string) {
+func watchFile(path string, alertFile chan string) {
 	oldHash := hash(path)
-	for true {
+	for {
 		time.Sleep(5 * time.Second)
 		newHash := hash(path)
 		if oldHash != newHash {
 			infos <- "Configuration file edited"
-			canale <- "-"
+			alertFile <- "-"
 		}
 		oldHash = newHash
 	}
@@ -126,14 +130,12 @@ func checkParams(serv *Service, nfqConfig uint16) {
 
 	//checks if the procols is correct (must be "tcp" or "udp")
 	if serv.Protocol != "tcp" && serv.Protocol != "udp" {
-		log.Println("Invalid argument for flag -p, must be set to 'tcp' or 'udp'")
-		os.Exit(127)
+		printErrors("Invalid argument for flag -p, must be set to 'tcp' or 'udp'")
 	}
 
 	//check if the port number is right
 	if serv.Dport < 1 || serv.Dport > 65535 {
-		log.Println("Invalid argument for flag -dport, the value need to be between 1 and 65535")
-		os.Exit(127)
+		printErrors("Invalid argument for flag -dport, the value need to be between 1 and 65535")
 	}
 
 	//assigning nfq id
@@ -152,19 +154,20 @@ func checkIn(path string, nfqConfig uint16) Services {
 
 	// check nfq number
 	if nfqConfig < 1 || nfqConfig > 65535 {
-		log.Println("Invalid argument for flag -nfq, the value need to be between 1 and 65535")
-		os.Exit(127)
+		printErrors("Invalid argument for flag -nfq, the value need to be between 1 and 65535")
 	}
 
 	// control if file exists
 	_, err := os.Open(path)
 	if err != nil { //if it doesn't
-		log.Println("File not found")
-		os.Exit(127) //close.
+		printErrors("File not found")//close.
 	}
 	//everything is fine, the file is there
 
 	services := readJson(path)
+	if(len(services.Services) == 0){
+		printErrors("No services or error in config!")
+	}
 
 	infos <- "services parsed"
 
@@ -199,8 +202,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	//se non riesce ad aprire il socket chiudi
 	nf, err := nfqueue.Open(&config)
 	if err != nil {
-		log.Println("could not open nfqueue socket:", err)
-		return
+		printErrors("could not open nfqueue socket")
 	}
 	defer nf.Close()
 
@@ -223,7 +225,11 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		// if the json is updated, update the regex
 		case <-alertFileEdited:
 
-			services = readJson(path)
+			tempServices := readJson(path)
+			//if json is valid,then apply changes
+			if len(tempServices.Services) != 0 {
+				services = tempServices
+			}
 			blacklist = services.Services[number].RulesList.Blacklist
 			whitelist = services.Services[number].RulesList.Whitelist
 			hasBlacklist = (len(blacklist) != 0)
@@ -243,6 +249,20 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		//take packet id
 		id := *a.PacketID
+		
+		// // Decode a packet
+		// packet := gopacket.NewPacket(*a.Payload, layers.LayerTypeEthernet, gopacket.Default)
+		// // Get the TCP layer from this packet
+		// var tcpLayer = packet.Layer(layers.LayerTypeTCP);
+		// if  tcpLayer != nil {
+		// log.Println("This is a TCP packet!")
+		// // Get actual TCP data from this layer
+		// tcp, _ := tcpLayer.(*layers.TCP)
+		// log.Printf("From src port %d to dst port %d\n", tcp.SrcPort, tcp.DstPort)
+		// }
+		// log.Println(tcpLayer)
+
+
 
 		not_managed := true
 
@@ -255,6 +275,8 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		//payload var stringify()
 		payloadString := string(payload)
 
+		// log.Println(string(*a.Payload))
+
 		//calculate offset for ignore IP and TCP/UDP headers
 		var offset int
 		if protocol == "udp" {
@@ -262,11 +284,12 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		} else if protocol == "tcp" {
 			offset = 20 + ((int(payload[32:33][0])>>4)*32)/8
 		}
+		log.Println(payloadString[offset:])
 
 		if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
 
 			if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
-				warnings <- "packet dropped " + services.Services[number].Name
+				warnings <- "packet dropped " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 				not_managed = false
 			}
@@ -275,7 +298,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		if hasBlacklist && not_managed { //blacklist (if there is a match with the regex, drop the packet)
 
 			if blacklistMatcher.Contains([]byte(payloadString[offset:])) {
-				warnings <- "packet dropped " + services.Services[number].Name
+				warnings <- "packet dropped " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 				not_managed = false
 			}
@@ -289,8 +312,8 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	}
 
 	r := func(e error) int {
-		log.Println("Error")
-		return 0
+		printErrors("Error")
+		return 42
 	}
 
 	//add to nfqueue callback fn for every packet that matches the rules
@@ -327,7 +350,7 @@ func setRules(services Services, path string) {
 			cmd := exec.Command("iptables", "-D", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
 			cmd.Run()
 		}
-		log.Println("Done!")
+		log.Println("\x1b[38;5;10m\tDone!\033[0m")
 		os.Exit(0)
 	}()
 
@@ -335,7 +358,7 @@ func setRules(services Services, path string) {
 	var wg sync.WaitGroup
 
 	//onmodify for json
-	alertFileEdited := make(chan string)
+	alertFileEdited := make(chan string,10)
 
 	//create waitgroup
 	wg.Add(len(services.Services) + 1)
@@ -348,9 +371,8 @@ func setRules(services Services, path string) {
 	}
 
 	//launch onModify
-	go func() {
-		watchFile(path, alertFileEdited)
-	}()
+	go watchFile(path, alertFileEdited)
+	
 
 	//wait for all fwFilter to be completed
 	wg.Wait()
@@ -359,7 +381,6 @@ func setRules(services Services, path string) {
 
 func main() {
 
-	go printErrors()
 	go printWarnings()
 	go printNormal()
 	go printInfos()
