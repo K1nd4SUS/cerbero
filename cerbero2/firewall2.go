@@ -6,9 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -318,7 +320,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 			var i int
 			if len(stats.ServiceAccess[number].Hits) > 0 {
-				for i = 0; i < len(stats.ServiceAccess[number].Hits); i++ {
+				for i = 0; i < len(stats.ServiceAccess[number].Hits) && !alreadyAccessed; i++ { // looking for the already accessed resource
 					if stats.ServiceAccess[number].Hits[i].Resource == newResource {
 						alreadyAccessed = true
 					}
@@ -435,6 +437,31 @@ func setRules(services Services, path string) {
 
 }
 
+func statsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/metrics" {
+		http.Error(w, "404 not found.", http.StatusNotFound)
+		return
+	}
+
+	if r.Method != "GET" {
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+		return
+	}
+
+	type Teacher struct {
+		ID        string
+		Firstname string
+		Lastname  string
+	}
+
+	marshaled, err := json.MarshalIndent(stats, "", "   ")
+	if err != nil {
+		log.Fatalf("marshaling error: %s", err)
+	}
+	fmt.Fprintf(w, string(marshaled))
+
+}
+
 func main() {
 
 	go printWarnings()
@@ -444,7 +471,10 @@ func main() {
 
 	go printStats()
 
-	success <- "service started"
+	http.HandleFunc("/metrics", statsHandler) // giving stats on /stats :8082
+	go http.ListenAndServe(":8082", nil)
+
+	success <- "Service started"
 
 	/*
 		EDITS:
@@ -461,7 +491,7 @@ func main() {
 	var pathFlag = flag.String("path", "./config.json", "Path to the json config file")
 
 	flag.Parse()
-	success <- "flags parsed"
+	success <- "Flags parsed"
 
 	nfqConfig := uint16(*nfqFlag)
 	path := *pathFlag
