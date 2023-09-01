@@ -12,10 +12,10 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 
 	//"regexp"
 	"strconv"
-	//"strings"
 	"sync"
 	"time"
 
@@ -50,11 +50,31 @@ type Service struct {
 	RulesList Rules  `json:"rulesList"`
 }
 
+// stats structs
+type Stats struct {
+	FileEdits     uint32
+	ServiceAccess []ServiceAccess
+}
+
+type ServiceAccess struct {
+	Service Service
+	Hits    []Hit
+}
+
+type Hit struct {
+	Resource string
+	Counter  uint64
+	Blocked  uint64
+}
+
+var stats Stats
+
 // logs
 var warnings = make(chan string, 1)
 var normal = make(chan string, 1)
 var infos = make(chan string, 1)
 var success = make(chan string, 1)
+var newStats = make(chan uint8)
 
 func printWarnings() {
 	for msg := range warnings {
@@ -81,14 +101,23 @@ func printNormal() {
 	}
 }
 
+func printStats() {
+	for {
+		<-newStats
+		log.Printf("\x1b[47;5;1m\t%+v\033[0m", stats) // that one
+	}
+}
+
 // serialize input
 func readJson(path string) Services {
 	jsonFile, _ := os.Open(path)
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
 	var services Services
-	if json.Valid(byteValue){
+	if json.Valid(byteValue) {
 		json.Unmarshal(byteValue, &services)
+		stats.FileEdits++
+		newStats <- 1
 		return services
 	}
 	warnings <- "An error was found in the config file!"
@@ -160,12 +189,12 @@ func checkIn(path string, nfqConfig uint16) Services {
 	// control if file exists
 	_, err := os.Open(path)
 	if err != nil { //if it doesn't
-		printErrors("File not found")//close.
+		printErrors("File not found") //close.
 	}
 	//everything is fine, the file is there
 
 	services := readJson(path)
-	if(len(services.Services) == 0){
+	if len(services.Services) == 0 {
 		printErrors("No services or error in config!")
 	}
 
@@ -178,7 +207,7 @@ func checkIn(path string, nfqConfig uint16) Services {
 	return services
 }
 
-// apply filters
+// apply filters and keep rules updated
 func fwFilter(services Services, number int, alertFileEdited chan string, path string) {
 
 	blacklist := services.Services[number].RulesList.Blacklist
@@ -220,7 +249,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	}
 
 	//function executed for every packet in input
-	fn := func(a nfqueue.Attribute) int {
+	fn := func(packet nfqueue.Attribute) int {
 		select {
 		// if the json is updated, update the regex
 		case <-alertFileEdited:
@@ -248,10 +277,10 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		}
 
 		//take packet id
-		id := *a.PacketID
-		
+		id := *packet.PacketID
+
 		// // Decode a packet
-		// packet := gopacket.NewPacket(*a.Payload, layers.LayerTypeEthernet, gopacket.Default)
+		//packet := gopacket.NewPacket(*a.Payload, layers.LayerTypeEthernet, gopacket.Default)
 		// // Get the TCP layer from this packet
 		// var tcpLayer = packet.Layer(layers.LayerTypeTCP);
 		// if  tcpLayer != nil {
@@ -262,20 +291,16 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		// }
 		// log.Println(tcpLayer)
 
-
-
-		not_managed := true
+		notManaged := true
 
 		//allocate byte array for packet payload
-		payload := make([]byte, len(*a.Payload))
+		payload := make([]byte, len(*packet.Payload))
 
 		//copy packet payload to payload variable
-		copy(payload, *a.Payload)
+		copy(payload, *packet.Payload)
 
 		//payload var stringify()
 		payloadString := string(payload)
-
-		// log.Println(string(*a.Payload))
 
 		//calculate offset for ignore IP and TCP/UDP headers
 		var offset int
@@ -284,28 +309,55 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		} else if protocol == "tcp" {
 			offset = 20 + ((int(payload[32:33][0])>>4)*32)/8
 		}
-		log.Println(payloadString[offset:])
 
-		if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
+		//log.Println(payloadString[offset:])
 
-			if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
-				warnings <- "packet dropped " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
-				nf.SetVerdict(id, nfqueue.NfDrop)
-				not_managed = false
+		if len(payloadString) > offset { // if the packet contains anything, TODO: exploitable to cause crashes
+			newResource := strings.Split(payloadString[offset+4:], " ")[0] // retrieving the resource name
+			alreadyAccessed := false
+
+			var i int
+			if len(stats.ServiceAccess[number].Hits) > 0 {
+				for i = 0; i < len(stats.ServiceAccess[number].Hits); i++ {
+					if stats.ServiceAccess[number].Hits[i].Resource == newResource {
+						alreadyAccessed = true
+					}
+				}
 			}
-		}
 
-		if hasBlacklist && not_managed { //blacklist (if there is a match with the regex, drop the packet)
-
-			if blacklistMatcher.Contains([]byte(payloadString[offset:])) {
-				warnings <- "packet dropped " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
-				nf.SetVerdict(id, nfqueue.NfDrop)
-				not_managed = false
+			if !alreadyAccessed {
+				var newHit Hit
+				newHit.Resource = newResource
+				newHit.Counter++
+				stats.ServiceAccess[number].Hits = append(stats.ServiceAccess[number].Hits, newHit)
+			} else {
+				stats.ServiceAccess[number].Hits[i-1].Counter++
 			}
-		}
 
-		if not_managed {
-			nf.SetVerdict(id, nfqueue.NfAccept)
+			if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
+
+				if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
+					warnings <- "packet dropped " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
+					nf.SetVerdict(id, nfqueue.NfDrop)
+					stats.ServiceAccess[number].Hits[i-1].Blocked++
+					notManaged = false
+				}
+			}
+
+			if hasBlacklist && notManaged { //blacklist (if there is a match with the regex, drop the packet)
+
+				if blacklistMatcher.Contains([]byte(payloadString[offset:])) {
+					warnings <- "packet dropped " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
+					nf.SetVerdict(id, nfqueue.NfDrop)
+					stats.ServiceAccess[number].Hits[i-1].Blocked++
+					notManaged = false
+				}
+			}
+
+			if notManaged {
+				nf.SetVerdict(id, nfqueue.NfAccept)
+			}
+			newStats <- 1
 		}
 
 		return 0
@@ -323,7 +375,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		return
 	}
 
-	// Block till the context expires
+	// Block until the context expires
 	<-ctx.Done()
 }
 
@@ -358,7 +410,7 @@ func setRules(services Services, path string) {
 	var wg sync.WaitGroup
 
 	//onmodify for json
-	alertFileEdited := make(chan string,10)
+	alertFileEdited := make(chan string, 10)
 
 	//create waitgroup
 	wg.Add(len(services.Services) + 1)
@@ -368,11 +420,15 @@ func setRules(services Services, path string) {
 		go func(k int, services Services) {
 			fwFilter(services, k, alertFileEdited, path)
 		}(k, services)
+
+		var newServiceAccess ServiceAccess // adding a new service access in stats for each service from the config file
+		newServiceAccess.Service = services.Services[k]
+		stats.ServiceAccess = append(stats.ServiceAccess, newServiceAccess)
+		newStats <- 1
 	}
 
 	//launch onModify
 	go watchFile(path, alertFileEdited)
-	
 
 	//wait for all fwFilter to be completed
 	wg.Wait()
@@ -385,6 +441,8 @@ func main() {
 	go printNormal()
 	go printInfos()
 	go printSuccess()
+
+	go printStats()
 
 	success <- "service started"
 
