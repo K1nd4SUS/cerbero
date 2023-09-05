@@ -53,31 +53,30 @@ type Service struct {
 }
 
 // stats structs
-type Stats struct { // the final struct sent to the API
-	FileEdits     uint32          // counting how many times the config.json is edited
-	ServiceAccess []ServiceAccess // list of accesses to each service, then explained
+type Stats struct {
+	FileEdits     uint32
+	ServiceAccess []ServiceAccess
 }
 
-type ServiceAccess struct { // each service access has the service accessed to and a list of hits
+type ServiceAccess struct {
 	Service Service
 	Hits    []Hit
 }
 
-type Hit struct { // each hit is interested to a specific resource and has a counter of accesses and a counter for the failed ones
+type Hit struct {
 	Resource string
 	Counter  uint64
 	Blocked  uint64
 }
 
-var stats Stats // declaration of the global variable containing all the stats infos
+var stats Stats
 
 // logs
 var warnings = make(chan string, 1)
 var normal = make(chan string, 1)
 var infos = make(chan string, 1)
 var success = make(chan string, 1)
-
-var newStats = make(chan uint8) // this is for stats on the cli, not for the API
+var newStats = make(chan uint8)
 
 func printWarnings() {
 	for msg := range warnings {
@@ -104,7 +103,7 @@ func printNormal() {
 	}
 }
 
-func printStats() { // printing on CLI whenever a new stat is available
+func printStats() {
 	for {
 		<-newStats
 		log.Printf("\x1b[47;5;1m\t%+v\033[0m", stats) // that one
@@ -119,7 +118,7 @@ func readJson(path string) Services {
 	var services Services
 	if json.Valid(byteValue) {
 		json.Unmarshal(byteValue, &services)
-		stats.FileEdits++ // counting a new file edit and alerting over the channel for CLI printing
+		stats.FileEdits++
 		newStats <- 1
 		return services
 	}
@@ -315,13 +314,13 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		//log.Println(payloadString[offset:])
 
-		if len(payloadString) > offset { // if the packet contains anything, TODO: exploitable to cause crashes... to be edited, avoiding this giant if. maybe sending data over a channel to a func to update stats
+		if len(payloadString) > offset { // if the packet contains anything, TODO: exploitable to cause crashes
 			newResource := strings.Split(payloadString[offset+4:], " ")[0] // retrieving the resource name
 			alreadyAccessed := false
 
 			var i int
-			if len(stats.ServiceAccess[number].Hits) > 0 { // if the number of hit resources for this service if greater than 0
-				for i = 0; i < len(stats.ServiceAccess[number].Hits) && !alreadyAccessed; i++ { // looking if the resource in particular was already accessed in the past. If not, a new entry in hits will be added
+			if len(stats.ServiceAccess[number].Hits) > 0 {
+				for i = 0; i < len(stats.ServiceAccess[number].Hits) && !alreadyAccessed; i++ { // looking for the already accessed resource
 					if stats.ServiceAccess[number].Hits[i].Resource == newResource {
 						alreadyAccessed = true
 					}
@@ -330,11 +329,11 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 			if !alreadyAccessed {
 				var newHit Hit
-				newHit.Resource = newResource // adding a new Hit (so a new hit resource)
+				newHit.Resource = newResource
 				newHit.Counter++
 				stats.ServiceAccess[number].Hits = append(stats.ServiceAccess[number].Hits, newHit)
 			} else {
-				stats.ServiceAccess[number].Hits[i-1].Counter++ // if already accessed, increasing the right entry in the Hit list
+				stats.ServiceAccess[number].Hits[i-1].Counter++
 			}
 
 			if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
@@ -342,7 +341,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 				if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
 					warnings <- "packet dropped " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
 					nf.SetVerdict(id, nfqueue.NfDrop)
-					stats.ServiceAccess[number].Hits[i-1].Blocked++ // increasing the blocked counter for that particular resource
+					stats.ServiceAccess[number].Hits[i-1].Blocked++
 					notManaged = false
 				}
 			}
@@ -424,8 +423,8 @@ func setRules(services Services, path string) {
 			fwFilter(services, k, alertFileEdited, path)
 		}(k, services)
 
-		var newServiceAccess ServiceAccess              // adding a new service access in stats for each service from the config file
-		newServiceAccess.Service = services.Services[k] // linking the interested service
+		var newServiceAccess ServiceAccess // adding a new service access in stats for each service from the config file
+		newServiceAccess.Service = services.Services[k]
 		stats.ServiceAccess = append(stats.ServiceAccess, newServiceAccess)
 		newStats <- 1
 	}
@@ -438,7 +437,7 @@ func setRules(services Services, path string) {
 
 }
 
-func statsHandler(w http.ResponseWriter, r *http.Request) { // handling /metrics requests
+func statsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/metrics" {
 		http.Error(w, "404 not found.", http.StatusNotFound)
 		return
@@ -449,7 +448,13 @@ func statsHandler(w http.ResponseWriter, r *http.Request) { // handling /metrics
 		return
 	}
 
-	marshaled, err := json.MarshalIndent(stats, "", "   ") // if everything is ok, parsing the struct to send pretty JSON
+	type Teacher struct {
+		ID        string
+		Firstname string
+		Lastname  string
+	}
+
+	marshaled, err := json.MarshalIndent(stats, "", "   ")
 	if err != nil {
 		log.Fatalf("marshaling error: %s", err)
 	}
