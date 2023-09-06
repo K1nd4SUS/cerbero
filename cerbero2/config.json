@@ -3,7 +3,7 @@
     {
       "name": "test_service",
       "protocol": "tcp",
-      "dport": 8083,
+      "dport": 8000,
       "rulesList": {
         "blacklist": [
           {
@@ -11,15 +11,7 @@
             "filters":[
               "helo"
             ]
-          },
-          {
-            "type":"base",
-            "filters":[
-              "64",
-              "32",
-              "58"
-            ]
-          } 
+          }
         ],
         "whitelist":[
           

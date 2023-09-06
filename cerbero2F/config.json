@@ -1,0 +1,30 @@
+{
+  "services": [
+    {
+      "name": "test tipo py",
+      "protocol": "tcp",
+      "dport": 8000,
+      "rulesList": {
+        "blacklist": [
+          {
+            "type":"regex",
+            "filters":[
+              "helo"
+            ]
+          },
+          {
+            "type":"base",
+            "filters":[
+              "64",
+              "32",
+              "58"
+            ]
+          } 
+        ],
+        "whitelist":[
+          
+        ]                   
+      }
+    }
+  ]
+}

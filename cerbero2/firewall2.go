@@ -16,7 +16,7 @@ import (
 	"os/signal"
 	"strings"
 
-	//"regexp"
+	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -297,7 +297,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		//allocate byte array for packet payload
 		payload := make([]byte, len(*packet.Payload))
-
+		log.Println(len(*packet.Payload))
 		//copy packet payload to payload variable
 		copy(payload, *packet.Payload)
 
@@ -312,55 +312,71 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			offset = 20 + ((int(payload[32:33][0])>>4)*32)/8
 		}
 
-		//log.Println(payloadString[offset:])
-
-		if len(payloadString) > offset { // if the packet contains anything, TODO: exploitable to cause crashes
-			newResource := strings.Split(payloadString[offset+4:], " ")[0] // retrieving the resource name
-			alreadyAccessed := false
-
-			var i int
-			if len(stats.ServiceAccess[number].Hits) > 0 {
-				for i = 0; i < len(stats.ServiceAccess[number].Hits) && !alreadyAccessed; i++ { // looking for the already accessed resource
-					if stats.ServiceAccess[number].Hits[i].Resource == newResource {
-						alreadyAccessed = true
-					}
-				}
-			}
-
-			if !alreadyAccessed {
-				var newHit Hit
-				newHit.Resource = newResource
-				newHit.Counter++
-				stats.ServiceAccess[number].Hits = append(stats.ServiceAccess[number].Hits, newHit)
-			} else {
-				stats.ServiceAccess[number].Hits[i-1].Counter++
-			}
-
-			if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
-
-				if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
-					warnings <- "packet dropped " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
-					nf.SetVerdict(id, nfqueue.NfDrop)
-					stats.ServiceAccess[number].Hits[i-1].Blocked++
-					notManaged = false
-				}
-			}
-
-			if hasBlacklist && notManaged { //blacklist (if there is a match with the regex, drop the packet)
-
-				if blacklistMatcher.Contains([]byte(payloadString[offset:])) {
-					warnings <- "packet dropped " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
-					nf.SetVerdict(id, nfqueue.NfDrop)
-					stats.ServiceAccess[number].Hits[i-1].Blocked++
-					notManaged = false
-				}
-			}
-
-			if notManaged {
-				nf.SetVerdict(id, nfqueue.NfAccept)
-			}
-			newStats <- 1
+		log.Println("payLOAD  ",payloadString)
+		log.Println("lunghezza ",len(payloadString[offset:])," offset ",offset)
+		var newResource string
+		reg, err := regexp.Compile("(GET )|(POST )")
+		if err!=nil {
+			log.Println("amen")
 		}
+		if len(payloadString[offset:]) > 0 { // if the packet contains anything, TODO: exploitable to cause crashes
+			newResource = reg.Split(payloadString[offset+4:],1)[0]
+			log.Println("\n\n\n\n", newResource)
+			newResource = strings.Split(newResource, "HTTP")[0]
+			log.Println("\n\n\n\n", newResource)
+			//newResource = strings.Split(payloadString[offset+4:],  reg)[0] // retrieving the resource name
+		}else{
+			newResource = reg.Split(payloadString[offset:],1)[0]
+			newResource = strings.Split(newResource, "HTTP")[0]
+			//newResource = strings.Split(payloadString[offset:], " ")[0]
+			// warnings <- "empty packet dropped " + services.Services[number].Name 
+			// nf.SetVerdict(id, nfqueue.NfDrop)
+		}
+		alreadyAccessed := false
+
+		var i int
+		if len(stats.ServiceAccess[number].Hits) > 0 {
+			for i = 0; i < len(stats.ServiceAccess[number].Hits) && !alreadyAccessed; i++ { // looking for the already accessed resource
+				if stats.ServiceAccess[number].Hits[i].Resource == newResource {
+					alreadyAccessed = true
+				}
+			}
+		}
+
+		if !alreadyAccessed {
+			var newHit Hit
+			newHit.Resource = newResource
+			newHit.Counter++
+			stats.ServiceAccess[number].Hits = append(stats.ServiceAccess[number].Hits, newHit)
+		} else {
+			stats.ServiceAccess[number].Hits[i-1].Counter++
+		}
+
+		if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
+
+			if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
+				warnings <- "packet dropped because whitelist " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
+				nf.SetVerdict(id, nfqueue.NfDrop)
+				stats.ServiceAccess[number].Hits[i-1].Blocked++
+				notManaged = false
+			}
+		}
+
+		if hasBlacklist && notManaged { //blacklist (if there is a match with the regex, drop the packet)
+
+			if blacklistMatcher.Contains([]byte(payloadString[offset:])) {
+				warnings <- "packet dropped because blacklist " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
+				nf.SetVerdict(id, nfqueue.NfDrop)
+				stats.ServiceAccess[number].Hits[i-1].Blocked++
+				notManaged = false
+			}
+		}
+
+		if notManaged {
+			nf.SetVerdict(id, nfqueue.NfAccept)
+		}
+		newStats <- 1
+		//}
 
 		return 0
 	}
