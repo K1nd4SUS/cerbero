@@ -55,19 +55,23 @@ type Service struct {
 // stats structs
 type Stats struct {
 	FileEdits     uint32
-	ServiceAccess []ServiceAccess
+	ServiceAccess []ServiceAccess // there will be a service access for each service
 }
 
 type ServiceAccess struct {
-	Service Service
-	Hits    []Hit
+	Service Service // containing useful info such as the service name and port
+	Hits    []Hit   // list of hits registered on that particular service
 }
 
 type Hit struct {
-	Resource string
+	Resource string // a hit is characterized by a hit resource, the method used and number of accesses (and blocked ones)
+	Method   string
 	Counter  uint64
 	Blocked  uint64
 }
+
+// when starting the firewall a new serviceAccess item is added for each registered service (from config.json). Then, when receiving a request, a check is made to verify that it is a new access resource. In this case, a new item in Hit is added. If not,
+// the "Counter" is just increased. Finally, based on the verdict, "Blocked" may be increased also.
 
 var stats Stats
 
@@ -76,7 +80,8 @@ var warnings = make(chan string, 1)
 var normal = make(chan string, 1)
 var infos = make(chan string, 1)
 var success = make(chan string, 1)
-var newStats = make(chan uint8)
+
+var newStats = make(chan uint8) // to know when a new stats (to be printed on the cli) is ready
 
 func printWarnings() {
 	for msg := range warnings {
@@ -103,7 +108,7 @@ func printNormal() {
 	}
 }
 
-func printStats() {
+func printStats() { // just printing stats on the cli
 	for {
 		<-newStats
 		log.Printf("\x1b[47;5;1m\t%+v\033[0m", stats) // that one
@@ -209,6 +214,8 @@ func checkIn(path string, nfqConfig uint16) Services {
 	return services
 }
 
+var lastResourceIndex int // to manage fragments. It stores the index in stats of the resource the packets is asking for. This is useful because if fwfilter is processing an intermediate fragment, it knows which resource must be increased in accesses (and maybe blocks) in stats
+
 // apply filters and keep rules updated
 func fwFilter(services Services, number int, alertFileEdited chan string, path string) {
 
@@ -297,6 +304,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		//allocate byte array for packet payload
 		payload := make([]byte, len(*packet.Payload))
+
 		log.Println(len(*packet.Payload))
 		//copy packet payload to payload variable
 		copy(payload, *packet.Payload)
@@ -312,52 +320,53 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			offset = 20 + ((int(payload[32:33][0])>>4)*32)/8
 		}
 
-		log.Println("payLOAD  ",payloadString)
-		log.Println("lunghezza ",len(payloadString[offset:])," offset ",offset)
+		log.Println("lunghezza ", len(payloadString[offset:]), " offset ", offset)
 		var newResource string
-		reg, err := regexp.Compile("(GET )|(POST )")
-		if err!=nil {
-			log.Println("amen")
-		}
+		methReg, _ := regexp.Compile("(GET )|(POST )")
+
 		if len(payloadString[offset:]) > 0 { // if the packet contains anything, TODO: exploitable to cause crashes
-			newResource = reg.Split(payloadString[offset+4:],1)[0]
+			newResource = methReg.Split(payloadString[offset+4:], 1)[0]
 			log.Println("\n\n\n\n", newResource)
 			newResource = strings.Split(newResource, "HTTP")[0]
 			log.Println("\n\n\n\n", newResource)
 			//newResource = strings.Split(payloadString[offset+4:],  reg)[0] // retrieving the resource name
-		}else{
-			newResource = reg.Split(payloadString[offset:],1)[0]
+		} else {
+			newResource = methReg.Split(payloadString[offset:], 1)[0]
 			newResource = strings.Split(newResource, "HTTP")[0]
 			//newResource = strings.Split(payloadString[offset:], " ")[0]
-			// warnings <- "empty packet dropped " + services.Services[number].Name 
+			// warnings <- "empty packet dropped " + services.Services[number].Name
 			// nf.SetVerdict(id, nfqueue.NfDrop)
 		}
-		alreadyAccessed := false
 
-		var i int
-		if len(stats.ServiceAccess[number].Hits) > 0 {
-			for i = 0; i < len(stats.ServiceAccess[number].Hits) && !alreadyAccessed; i++ { // looking for the already accessed resource
-				if stats.ServiceAccess[number].Hits[i].Resource == newResource {
-					alreadyAccessed = true
+		if methReg.MatchString(payloadString[offset:]) { // if this packet is a fragment and is the first fragment, it must contain GET/POST string (can be improved  maybe including also the HTTP/*.* string)
+			alreadyAccessed := false
+			var i int
+			if len(stats.ServiceAccess[number].Hits) > 0 {
+				for i = 0; i < len(stats.ServiceAccess[number].Hits) && !alreadyAccessed; i++ { // looking for the already accessed resource
+					if stats.ServiceAccess[number].Hits[i].Resource == newResource {
+						alreadyAccessed = true
+					}
 				}
 			}
-		}
 
-		if !alreadyAccessed {
-			var newHit Hit
-			newHit.Resource = newResource
-			newHit.Counter++
-			stats.ServiceAccess[number].Hits = append(stats.ServiceAccess[number].Hits, newHit)
-		} else {
-			stats.ServiceAccess[number].Hits[i-1].Counter++
+			if !alreadyAccessed { // creating a new accessed resource in stats
+				var newHit Hit
+				newHit.Resource = newResource
+				newHit.Counter++
+				stats.ServiceAccess[number].Hits = append(stats.ServiceAccess[number].Hits, newHit)
+			} else {
+				stats.ServiceAccess[number].Hits[i-1].Counter++
+			}
+			lastResourceIndex = i - 1 // updating the global variable, as previously specified
 		}
+		// if this conditional is not entered, it means that we are handling an intermediate fragment, so only a verdict must be given (surely we are not adding a new resource access)
 
 		if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
 
 			if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
 				warnings <- "packet dropped because whitelist " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
-				stats.ServiceAccess[number].Hits[i-1].Blocked++
+				stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
 				notManaged = false
 			}
 		}
@@ -365,18 +374,20 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		if hasBlacklist && notManaged { //blacklist (if there is a match with the regex, drop the packet)
 
 			if blacklistMatcher.Contains([]byte(payloadString[offset:])) {
-				warnings <- "packet dropped because blacklist " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
+				warnings <- "packet dropped because of " + services.Services[number].Name + " blacklist" // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
-				stats.ServiceAccess[number].Hits[i-1].Blocked++
+				stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
 				notManaged = false
 			}
 		}
+
+		// TODO: in this logic, if a packet divided in more fragments containes blacklisted string in more than one fragment, it will result in more than one block in stats. A solution must be fine, but for now, it works (on my machine :D)
 
 		if notManaged {
 			nf.SetVerdict(id, nfqueue.NfAccept)
 		}
 		newStats <- 1
-		//}
+		warnings <- payloadString // just printing the payload
 
 		return 0
 	}
@@ -453,7 +464,7 @@ func setRules(services Services, path string) {
 
 }
 
-func statsHandler(w http.ResponseWriter, r *http.Request) {
+func statsHandler(w http.ResponseWriter, r *http.Request) { // handling stats queries over API
 	if r.URL.Path != "/metrics" {
 		http.Error(w, "404 not found.", http.StatusNotFound)
 		return
@@ -464,17 +475,11 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type Teacher struct {
-		ID        string
-		Firstname string
-		Lastname  string
-	}
-
 	marshaled, err := json.MarshalIndent(stats, "", "   ")
 	if err != nil {
 		log.Fatalf("marshaling error: %s", err)
 	}
-	fmt.Fprintf(w, string(marshaled))
+	fmt.Fprintf(w, string(marshaled)) // sending stats in pretty JSON
 
 }
 

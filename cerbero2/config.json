@@ -3,7 +3,7 @@
     {
       "name": "test_service",
       "protocol": "tcp",
-      "dport": 8000,
+      "dport": 8083,
       "rulesList": {
         "blacklist": [
           {
