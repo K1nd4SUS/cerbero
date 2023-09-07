@@ -1,4 +1,4 @@
 .DS_Store
 dockerize
 firewall2
-./test_service/service
+service
