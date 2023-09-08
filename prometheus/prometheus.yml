@@ -31,4 +31,4 @@ scrape_configs:
          # scheme defaults to 'http'.
 
     static_configs:
-      - targets: ['localhost:8082']
+      - targets: ['cerbero:8082']
