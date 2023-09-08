@@ -75,6 +75,20 @@ type Hit struct {
 
 var stats Stats
 
+//map
+type ResInfo struct {
+	Accessed     bool
+	Idx 		 int 
+}
+
+//! RAGIONAMENTO
+//* 1. la mappa ha un campo aggiuntivo: il timestamp/unix time dell'ultima volta che è stato usato quel pacchetto 
+//* 2. ogni volta che ci risulta quel pacchetto, aggiorniamo il tempo
+//* 3. una goroutine runna una volta ogni tot secondi, controlla per ogni pacchetto se non si sentono sue notizie da più del delta fissato, e a quel punto lo elimina
+
+//flag for chain selection on iptables
+var chainType="DOCKER-INGRESS"
+
 // logs
 var warnings = make(chan string, 1)
 var normal = make(chan string, 1)
@@ -214,7 +228,7 @@ func checkIn(path string, nfqConfig uint16) Services {
 	return services
 }
 
-var lastResourceIndex int // to manage fragments. It stores the index in stats of the resource the packets is asking for. This is useful because if fwfilter is processing an intermediate fragment, it knows which resource must be increased in accesses (and maybe blocks) in stats
+
 
 // apply filters and keep rules updated
 func fwFilter(services Services, number int, alertFileEdited chan string, path string) {
@@ -237,6 +251,9 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		WriteTimeout: 15 * time.Millisecond,
 	}
 
+	var lastResourceIndex int // to manage fragments. It stores the index in stats of the resource the packets is asking for. This is useful because if fwfilter is processing an intermediate fragment, it knows which resource must be increased in accesses (and maybe blocks) in stats
+	var fragMap = make(map[string]ResInfo)
+	
 	//se non riesce ad aprire il socket chiudi
 	nf, err := nfqueue.Open(&config)
 	if err != nil {
@@ -305,7 +322,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		//allocate byte array for packet payload
 		payload := make([]byte, len(*packet.Payload))
 
-		log.Println(len(*packet.Payload))
+		//log.Println(len(*packet.Payload))
 		//copy packet payload to payload variable
 		copy(payload, *packet.Payload)
 
@@ -319,54 +336,99 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		} else if protocol == "tcp" {
 			offset = 20 + ((int(payload[32:33][0])>>4)*32)/8
 		}
-
+		fmt.Println("\x1b[38;5;129m","INIZIO PACCHETTO","\033[0m")
 		log.Println("lunghezza ", len(payloadString[offset:]), " offset ", offset)
 		var newResource string
-		methReg, _ := regexp.Compile("(GET )|(POST )")
-
+		var newMethodType = ""
+		var splitted string
+		methReg, _ := regexp.Compile("(GET )|(POST )|(PUT )|(PATCH )|(DELETE )|(HEAD )|(CONNECT )|(OPTIONS )|(TRACE )")
+		boundReg, _ := regexp.Compile("boundary=------------------------")
+		bound2Reg, _ := regexp.Compile("--------------------------")
+		var boundary = []string{""}
+		
 		if len(payloadString[offset:]) > 0 { // if the packet contains anything, TODO: exploitable to cause crashes
-			newResource = methReg.Split(payloadString[offset+4:], 1)[0]
-			log.Println("\n\n\n\n", newResource)
-			newResource = strings.Split(newResource, "HTTP")[0]
-			log.Println("\n\n\n\n", newResource)
+			newResource = methReg.Split(payloadString[offset:], 1)[0]
+			//log.Println("\n\n\n\n", newResource)
+			fmt.Println(newResource)
+			splitted = strings.Split(newResource, "HTTP")[0]
+			
+			newResource = strings.Split(splitted," ")[1]
+			newMethodType = strings.Split(splitted," ")[0]
 			//newResource = strings.Split(payloadString[offset+4:],  reg)[0] // retrieving the resource name
-		} else {
+			
+		 } else {
 			newResource = methReg.Split(payloadString[offset:], 1)[0]
 			newResource = strings.Split(newResource, "HTTP")[0]
-			//newResource = strings.Split(payloadString[offset:], " ")[0]
-			// warnings <- "empty packet dropped " + services.Services[number].Name
-			// nf.SetVerdict(id, nfqueue.NfDrop)
 		}
 
 		if methReg.MatchString(payloadString[offset:]) { // if this packet is a fragment and is the first fragment, it must contain GET/POST string (can be improved  maybe including also the HTTP/*.* string)
+			
+			//* take the boundary, if the regex is found, then the array MUST be len > 1
+			boundary = boundReg.Split(payloadString[offset:], -1)			
+			
 			alreadyAccessed := false
 			var i int
 			if len(stats.ServiceAccess[number].Hits) > 0 {
 				for i = 0; i < len(stats.ServiceAccess[number].Hits) && !alreadyAccessed; i++ { // looking for the already accessed resource
-					if stats.ServiceAccess[number].Hits[i].Resource == newResource {
+					if (stats.ServiceAccess[number].Hits[i].Resource == newResource) && (stats.ServiceAccess[number].Hits[i].Method == newMethodType){
 						alreadyAccessed = true
+						fmt.Println("INDICE RISORSA",stats.ServiceAccess[number].Hits[i].Resource," IDX",i)
 					}
 				}
 			}
 
+			if i > 0 && (i != len(stats.ServiceAccess[number].Hits) || alreadyAccessed) {
+				i--
+			}
+			lastResourceIndex = i
+			
+			//!TODO con alcuni metodi GET il lastresidx non cambia!!
 			if !alreadyAccessed { // creating a new accessed resource in stats
 				var newHit Hit
 				newHit.Resource = newResource
+				newHit.Method = newMethodType
 				newHit.Counter++
 				stats.ServiceAccess[number].Hits = append(stats.ServiceAccess[number].Hits, newHit)
 			} else {
-				stats.ServiceAccess[number].Hits[i-1].Counter++
+				stats.ServiceAccess[number].Hits[lastResourceIndex].Counter++
 			}
-			lastResourceIndex = i - 1 // updating the global variable, as previously specified
-		}
-		// if this conditional is not entered, it means that we are handling an intermediate fragment, so only a verdict must be given (surely we are not adding a new resource access)
+			fmt.Println("IDX ",i," len", len(stats.ServiceAccess[number].Hits))
 
+			
+			//* insert in the map key= boundary & value=0 IF the key was found
+			if(len(boundary) > 1){
+				var resStruct ResInfo
+				resStruct.Accessed = false
+				resStruct.Idx = lastResourceIndex
+				
+				fragMap[boundary[1][:16]]=resStruct
+			}
+			
+		}
+
+		// if this conditional is not entered, it means that we are handling an intermediate fragment, so only a verdict must be given (surely we are not adding a new resource access)
+		hexReg, _ := regexp.Compile("^[0-9a-fA-F]+$")
+		
 		if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
 
 			if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
 				warnings <- "packet dropped because whitelist " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
-				stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
+
+				boundary = bound2Reg.Split(payloadString[offset:], -1) 
+
+				//* we use shortcircuiting for avoiding a crash here, we check if the fragment is not already counted then we update is value
+				if len(boundary) > 1 && !fragMap[boundary[1][:16]].Accessed {
+					stats.ServiceAccess[number].Hits[fragMap[boundary[1][:16]].Idx].Blocked++
+					tempStruct := fragMap[boundary[1][:16]]
+					tempStruct.Accessed = true
+					fragMap[boundary[1][:16]] = tempStruct
+					
+				}else if(len(boundary) == 1 && !hexReg.MatchString(boundary[0][:16])){
+					
+					stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
+				
+				}
 				notManaged = false
 			}
 		}
@@ -376,18 +438,29 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			if blacklistMatcher.Contains([]byte(payloadString[offset:])) {
 				warnings <- "packet dropped because of " + services.Services[number].Name + " blacklist" // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
-				stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
+				boundary = bound2Reg.Split(payloadString[offset:], -1)
+				
+				//* we use shortcircuiting for avoiding a crash here, we check if the fragment is not already counted then we update is value
+				if len(boundary) > 1 && !fragMap[boundary[1][:16]].Accessed {
+
+					stats.ServiceAccess[number].Hits[fragMap[boundary[1][:16]].Idx].Blocked++
+					tempStruct := fragMap[boundary[1][:16]]
+					tempStruct.Accessed = true
+					fragMap[boundary[1][:16]] = tempStruct
+				}else if(len(boundary) == 1 && !hexReg.MatchString(boundary[0][:16]) ){	
+					
+					stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
+				
+				}
 				notManaged = false
 			}
 		}
-
-		// TODO: in this logic, if a packet divided in more fragments containes blacklisted string in more than one fragment, it will result in more than one block in stats. A solution must be fine, but for now, it works (on my machine :D)
 
 		if notManaged {
 			nf.SetVerdict(id, nfqueue.NfAccept)
 		}
 		newStats <- 1
-		warnings <- payloadString // just printing the payload
+		warnings <- payloadString[offset:] // just printing the payload - CONCURRENT <- is printed after "FINE PACCHETTO"
 
 		return 0
 	}
@@ -416,7 +489,7 @@ func setRules(services Services, path string) {
 
 	//loop for create iptables rules
 	for k := 0; k < len(services.Services); k++ {
-		cmd := exec.Command("iptables", "-I", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
+		cmd := exec.Command("iptables", "-I", chainType, "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
 		cmd.Run()
 	}
 
@@ -428,7 +501,7 @@ func setRules(services Services, path string) {
 		success <- "Removing iptables rule"
 		//loop for delete iptables rules
 		for k := 0; k < len(services.Services); k++ {
-			cmd := exec.Command("iptables", "-D", "INPUT", "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
+			cmd := exec.Command("iptables", "-D", chainType, "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
 			cmd.Run()
 		}
 		log.Println("\x1b[38;5;10m\tDone!\033[0m")
@@ -510,10 +583,17 @@ func main() {
 	var nfqFlag = flag.Int("nfq", 100, "Queue number (optional, default 100 onwards)")
 	//path specification
 	var pathFlag = flag.String("path", "./config.json", "Path to the json config file")
-
+	//chain specification
+	var dockerized = flag.String("docker", "y", "Are the services on docker? [Y/n]")
+	
 	flag.Parse()
 	success <- "Flags parsed"
 
+	if *dockerized == "n" {
+		chainType = "INPUT"
+	}
+	
+	infos <- "chain "+chainType+" selected"
 	nfqConfig := uint16(*nfqFlag)
 	path := *pathFlag
 
