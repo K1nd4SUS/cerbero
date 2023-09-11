@@ -15,3 +15,4 @@ go build -o firewall
 
 > aggiungere script per test automatico del corretto setup
 > evitare in ogni modo il crash (es typo nella config salta il servizio e manda warning)
+> Per filtrare docker usare la chain DOCKER-INGRESS, mentre per servizi non docker INPUT

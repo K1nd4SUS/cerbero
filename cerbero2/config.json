@@ -1,9 +1,9 @@
 {
   "services": [
     {
-      "name": "test tipo py",
+      "name": "test_service",
       "protocol": "tcp",
-      "dport": 8000,
+      "dport": 8083,
       "rulesList": {
         "blacklist": [
           {
@@ -11,15 +11,25 @@
             "filters":[
               "helo"
             ]
-          },
+          }
+        ],
+        "whitelist":[
+          
+        ]                   
+      }
+    },
+    {
+      "name": "mainstage",
+      "protocol": "tcp",
+      "dport": 3300,
+      "rulesList": {
+        "blacklist": [
           {
-            "type":"base",
+            "type":"regex",
             "filters":[
-              "64",
-              "32",
-              "58"
+              "helo"
             ]
-          } 
+          }
         ],
         "whitelist":[
           
