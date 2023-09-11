@@ -9,7 +9,7 @@
           {
             "type":"regex",
             "filters":[
-              "helo"
+              "(?i)cio"
             ]
           }
         ],

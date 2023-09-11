@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	ahocorasick "github.com/cloudflare/ahocorasick"
+	//ahocorasick "github.com/cloudflare/ahocorasick"
 	nfqueue "github.com/florianl/go-nfqueue"
 )
 
@@ -90,7 +90,7 @@ var normal = make(chan string, 1)
 var infos = make(chan string, 1)
 var success = make(chan string, 1)
 
-var newStats = make(chan uint8) // to know when a new stats (to be printed on the cli) is ready
+//var newStats = make(chan uint8) // to know when a new stats (to be printed on the cli) is ready
 
 func printWarnings() {
 	for msg := range warnings {
@@ -117,12 +117,12 @@ func printNormal() {
 	}
 }
 
-func printStats() { // just printing stats on the cli
-	for {
-		<-newStats
-		log.Printf("\x1b[47;5;1m\t%+v\033[0m", stats) // that one
-	}
-}
+// func printStats() { // just printing stats on the cli
+// 	for {
+// 		<-newStats
+// 		log.Printf("\x1b[47;5;1m\t%+v\033[0m", stats) // that one
+// 	}
+// }
 
 // serialize input
 func readJson(path string) Services {
@@ -133,7 +133,7 @@ func readJson(path string) Services {
 	if json.Valid(byteValue) {
 		json.Unmarshal(byteValue, &services)
 		stats.FileEdits++ // increasing file edits stats
-		newStats <- 1
+		//newStats <- 1
 		return services
 	}
 	warnings <- "An error was found in the config file!"
@@ -171,11 +171,8 @@ func watchFile(path string, alertFile chan string) {
 func watchMap(mapPointer *map[string]ResInfo){
 	for {
 		time.Sleep(5 * time.Second)
-		infos <- "Controllo..."
 		for key, val := range *mapPointer {
-			success <- "CONTROLLO " + key
 			if time.Now().Sub(val.Time) > delta {
-				warnings <- "ELIMINATO " + key
 				delete(*mapPointer, key)
 			}
 		}
@@ -267,7 +264,17 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 	ctx := context.Background()
 
-	blacklistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
+	var blacklistMatcher, whitelistMatcher *regexp.Regexp
+
+	if hasBlacklist {
+		blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters,"|"))
+	}
+
+	if hasWhitelist{
+		whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters,"|"))
+	}
+
+	/*blacklistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
 	if hasBlacklist {
 		blacklistMatcher = ahocorasick.NewStringMatcher(blacklist[0].Filters)
 	}
@@ -275,7 +282,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	whitelistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
 	if hasWhitelist {
 		whitelistMatcher = ahocorasick.NewStringMatcher(whitelist[0].Filters)
-	}
+	}*/
 
 	//function executed for every packet (or packet fragment) in input
 	fn := func(packet nfqueue.Attribute) int {
@@ -294,11 +301,11 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			hasWhitelist = (len(whitelist) != 0)
 
 			if hasBlacklist {
-				blacklistMatcher = ahocorasick.NewStringMatcher(blacklist[0].Filters)
+				blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters,"|"))
 			}
-
-			if hasWhitelist {
-				whitelistMatcher = ahocorasick.NewStringMatcher(whitelist[0].Filters)
+		
+			if hasWhitelist{
+				whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters,"|"))
 			}
 
 		default:
@@ -340,7 +347,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		boundReg, _ := regexp.Compile("boundary=------------------------")
 		bound2Reg, _ := regexp.Compile("--------------------------")
 		var boundary = []string{""}
-
+		//TODO forse qui è da mettere anche && match con methreg
 		if len(payloadString[offset:]) > 0 { // if the packet contains anything
 			newResource = methReg.Split(payloadString[offset:], 1)[0] // retrieving the resource name
 
@@ -404,7 +411,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		if hasWhitelist { //whitelist (if there is a match with the regex, accept the packet)
 
-			if !whitelistMatcher.Contains([]byte(payloadString[offset:])) {
+			if !whitelistMatcher.MatchString(payloadString[offset:]) {
 				warnings <- "packet dropped because whitelist " + services.Services[number].Name // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 
@@ -429,7 +436,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		if hasBlacklist && notManaged { //blacklist (if there is a match with the regex, drop the packet)
 
-			if blacklistMatcher.Contains([]byte(payloadString[offset:])) {
+			if blacklistMatcher.MatchString(payloadString[offset:]) {
 				warnings <- "packet dropped because of " + services.Services[number].Name + " blacklist" // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 				boundary = bound2Reg.Split(payloadString[offset:], -1) // eventually looking for the boundary identifier (included only if it is a fragment)
@@ -455,9 +462,11 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		if notManaged {
 			nf.SetVerdict(id, nfqueue.NfAccept)
+		} else {
+			warnings <- payloadString[offset:]
 		}
-		newStats <- 1
-		warnings <- payloadString[offset:] // just printing the payload - CONCURRENT <- is printed after "FINE PACCHETTO"
+		//newStats <- 1
+		//warnings <- payloadString[offset:] // just printing the payload - CONCURRENT <- is printed after "FINE PACCHETTO"
 
 		return 0
 	}
@@ -523,7 +532,7 @@ func setRules(services Services, path string) {
 		var newServiceAccess ServiceAccess // adding a new service access in stats for each service from the config file
 		newServiceAccess.Service = services.Services[k]
 		stats.ServiceAccess = append(stats.ServiceAccess, newServiceAccess)
-		newStats <- 1
+		//newStats <- 1
 	}
 
 	// launch onModify
@@ -560,7 +569,7 @@ func main() {
 	go printInfos()
 	go printSuccess()
 
-	go printStats()
+	//go printStats()
 
 	http.HandleFunc("/metrics", statsHandler) // giving stats on /stats :8082
 	go http.ListenAndServe(":8082", nil)
