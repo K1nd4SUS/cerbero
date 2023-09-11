@@ -76,15 +76,13 @@ var stats Stats
 type ResInfo struct {
 	WasNeverBlocked bool // if the fragment was blocked
 	Idx             int  // the fragment belongs to a packet interested to a particular resource registered in the Hit array at this index.
+	Time			time.Time // the moment a fragment of the packet was received for the last time
 }
 
-//! RAGIONAMENTO
-//* 1. la mappa ha un campo aggiuntivo: il timestamp/unix time dell'ultima volta che è stato usato quel pacchetto
-//* 2. ogni volta che ci risulta quel pacchetto, aggiorniamo il tempo
-//* 3. una goroutine runna una volta ogni tot secondi, controlla per ogni pacchetto se non si sentono sue notizie da più del delta fissato, e a quel punto lo elimina
-
 // flag for the chain selection on iptables
-var chainType = "DOCKER-INGRESS"
+var chainType = "DOCKER-USER"
+
+var delta = 60 * time.Second
 
 // logs channels
 var warnings = make(chan string, 1)
@@ -170,6 +168,20 @@ func watchFile(path string, alertFile chan string) {
 	}
 }
 
+func watchMap(mapPointer *map[string]ResInfo){
+	for {
+		time.Sleep(5 * time.Second)
+		infos <- "Controllo..."
+		for key, val := range *mapPointer {
+			success <- "CONTROLLO " + key
+			if time.Now().Sub(val.Time) > delta {
+				warnings <- "ELIMINATO " + key
+				delete(*mapPointer, key)
+			}
+		}
+	}
+}
+
 // check params validity on sartup
 func checkParams(serv *Service, nfqConfig uint16) {
 
@@ -243,7 +255,9 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 	var lastResourceIndex int              // to manage fragments. It stores the index in stats of the resource the packets is asking for. This is useful because if fwfilter is processing an intermediate fragment, it knows which resource must be increased in accesses (and maybe blocks) in stats
 	var fragMap = make(map[string]ResInfo) // Fragments map. It maps boundary -> resInfo Struct
-
+	//delete old elements
+	go watchMap(&fragMap)
+	
 	// If it fails the socket opening, close it
 	nf, err := nfqueue.Open(&config)
 	if err != nil {
@@ -362,7 +376,6 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			}
 			lastResourceIndex = i
 
-			//!TODO con alcuni metodi GET il lastresidx non cambia!!
 			if !alreadyWasNeverBlocked { // creating a new accessed resource in stats
 				var newHit Hit
 				newHit.Resource = newResource
@@ -379,6 +392,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 				var resStruct ResInfo
 				resStruct.WasNeverBlocked = false // any of the packet fragment was blocked
 				resStruct.Idx = lastResourceIndex // the fragment belongs to a packet interested in the lastResourceIndex(th) resource
+				resStruct.Time = time.Now()
 
 				fragMap[boundary[1][:16]] = resStruct
 			}
@@ -401,6 +415,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 					stats.ServiceAccess[number].Hits[fragMap[boundary[1][:16]].Idx].Blocked++
 					tempStruct := fragMap[boundary[1][:16]]
 					tempStruct.WasNeverBlocked = true
+					tempStruct.Time = time.Now()
 					fragMap[boundary[1][:16]] = tempStruct
 
 				} else if len(boundary) == 1 && !hexReg.MatchString(boundary[0][:16]) {
@@ -426,6 +441,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 					stats.ServiceAccess[number].Hits[fragMap[boundary[1][:16]].Idx].Blocked++
 					tempStruct := fragMap[boundary[1][:16]]
 					tempStruct.WasNeverBlocked = true
+					tempStruct.Time = time.Now()
 					fragMap[boundary[1][:16]] = tempStruct
 
 				} else if len(boundary) == 1 && !hexReg.MatchString(boundary[0][:16]) { // if there is not a boundary identifier (so it is an entire packet) just update stats
