@@ -74,9 +74,9 @@ var stats Stats
 // Mapping packets if splitted in fragments at the IP layer
 // Every boundary code is mapped to a resInfo sruct var
 type ResInfo struct {
-	WasNeverBlocked bool // if the fragment was blocked
-	Idx             int  // the fragment belongs to a packet interested to a particular resource registered in the Hit array at this index.
-	Time			time.Time // the moment a fragment of the packet was received for the last time
+	WasNeverBlocked bool      // if the fragment was blocked
+	Idx             int       // the fragment belongs to a packet interested to a particular resource registered in the Hit array at this index.
+	Time            time.Time // the moment a fragment of the packet was received for the last time
 }
 
 // flag for the chain selection on iptables
@@ -168,7 +168,7 @@ func watchFile(path string, alertFile chan string) {
 	}
 }
 
-func watchMap(mapPointer *map[string]ResInfo){
+func watchMap(mapPointer *map[string]ResInfo) {
 	for {
 		time.Sleep(5 * time.Second)
 		for key, val := range *mapPointer {
@@ -254,7 +254,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	var fragMap = make(map[string]ResInfo) // Fragments map. It maps boundary -> resInfo Struct
 	//delete old elements
 	go watchMap(&fragMap)
-	
+
 	// If it fails the socket opening, close it
 	nf, err := nfqueue.Open(&config)
 	if err != nil {
@@ -267,11 +267,11 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	var blacklistMatcher, whitelistMatcher *regexp.Regexp
 
 	if hasBlacklist {
-		blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters,"|"))
+		blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters, "|"))
 	}
 
-	if hasWhitelist{
-		whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters,"|"))
+	if hasWhitelist {
+		whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters, "|"))
 	}
 
 	/*blacklistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
@@ -301,11 +301,11 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			hasWhitelist = (len(whitelist) != 0)
 
 			if hasBlacklist {
-				blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters,"|"))
+				blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters, "|"))
 			}
-		
-			if hasWhitelist{
-				whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters,"|"))
+
+			if hasWhitelist {
+				whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters, "|"))
 			}
 
 		default:
@@ -467,7 +467,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		}
 		//newStats <- 1
 		//warnings <- payloadString[offset:] // just printing the payload - CONCURRENT <- is printed after "FINE PACCHETTO"
-
+		log.Println(number)
 		return 0
 	}
 
@@ -475,7 +475,6 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		printErrors("Error")
 		return 42
 	}
-
 	//add to nfqueue callback fn for every packet that matches the rules
 	err = nf.RegisterWithErrorFunc(ctx, fn, r)
 	if err != nil {
@@ -526,6 +525,7 @@ func setRules(services Services, path string) {
 	// loop for start the go routines with fwFilter
 	for k := 0; k < len(services.Services); k++ {
 		go func(k int, services Services) {
+			log.Print(k)
 			fwFilter(services, k, alertFileEdited, path)
 		}(k, services)
 
@@ -558,6 +558,7 @@ func statsHandler(w http.ResponseWriter, r *http.Request) { // handling stats qu
 	if err != nil {
 		log.Fatalf("marshaling error: %s", err)
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, string(marshaled)) // sending stats in pretty JSON
 
 }

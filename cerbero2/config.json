@@ -19,9 +19,9 @@
       }
     },
     {
-      "name": "mainstage",
+      "name": "test_service2",
       "protocol": "tcp",
-      "dport": 3300,
+      "dport": 8085,
       "rulesList": {
         "blacklist": [
           {

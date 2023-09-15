@@ -1,0 +1,51 @@
+* {
+    font-family: 'Courier New', Courier, monospace;
+    color: aliceblue;
+}
+
+body {
+    background-image: url("./images/wall.png");
+    background-size: cover;
+    min-height: 100vh;
+}
+
+#titleImage {
+    width: 30rem;
+}
+
+#mainContent {
+    margin-top: 5rem;
+    padding-left: 6rem;
+}
+
+.serviceCard {
+    padding: 2rem;
+    background-color: #141a26;
+    border: solid #1cf1fb 1px;
+    border-radius: 4px;
+    margin-right: 8rem;
+}
+
+.highlight {
+    color: #1cf1fb;
+}
+
+.blacklist {
+    color: #c91e1e;
+}
+
+.getText {
+    color: #00f5d4;
+}
+
+.postText {
+    color: #e63946;
+}
+
+.putText {
+    color: #ffb703;
+}
+
+.othersText {
+    color: #48cae4;
+}
