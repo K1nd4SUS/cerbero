@@ -1,7 +1,7 @@
 {
   "services": [
     {
-      "name": "test_service1",
+      "name": "test_service",
       "protocol": "tcp",
       "dport": 8083,
       "rulesList": {
@@ -9,8 +9,8 @@
           {
             "type":"regex",
             "filters":[
-              "(?i)cio",
-              "bruh23"
+              "(?i)ciao", 
+              ".*"
             ]
           }
         ],
@@ -20,16 +20,15 @@
       }
     },
     {
-      "name": "test_service2",
+      "name": "mainstage",
       "protocol": "tcp",
-      "dport": 8085,
+      "dport": 3300,
       "rulesList": {
         "blacklist": [
           {
             "type":"regex",
             "filters":[
-              "helo",
-              "bruh"
+              "(?i)helo"
             ]
           }
         ],

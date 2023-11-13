@@ -74,9 +74,9 @@ var stats Stats
 // Mapping packets if splitted in fragments at the IP layer
 // Every boundary code is mapped to a resInfo sruct var
 type ResInfo struct {
-	WasNeverBlocked bool      // if the fragment was blocked
-	Idx             int       // the fragment belongs to a packet interested to a particular resource registered in the Hit array at this index.
-	Time            time.Time // the moment a fragment of the packet was received for the last time
+	WasNeverBlocked bool // if the fragment was blocked
+	Idx             int  // the fragment belongs to a packet interested to a particular resource registered in the Hit array at this index.
+	Time			time.Time // the moment a fragment of the packet was received for the last time
 }
 
 // flag for the chain selection on iptables
@@ -132,6 +132,7 @@ func readJson(path string) Services {
 	var services Services
 	if json.Valid(byteValue) {
 		json.Unmarshal(byteValue, &services)
+		stats.FileEdits++ // increasing file edits stats
 		//newStats <- 1
 		return services
 	}
@@ -160,7 +161,6 @@ func watchFile(path string, alertFile chan string) {
 		time.Sleep(5 * time.Second)
 		newHash := hash(path)
 		if oldHash != newHash {
-			stats.FileEdits++ // increasing file edits stats
 			infos <- "Configuration file edited"
 			alertFile <- "-" // notifying that the file has changed
 		}
@@ -168,7 +168,7 @@ func watchFile(path string, alertFile chan string) {
 	}
 }
 
-func watchMap(mapPointer *map[string]ResInfo) {
+func watchMap(mapPointer *map[string]ResInfo){
 	for {
 		time.Sleep(5 * time.Second)
 		for key, val := range *mapPointer {
@@ -254,7 +254,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	var fragMap = make(map[string]ResInfo) // Fragments map. It maps boundary -> resInfo Struct
 	//delete old elements
 	go watchMap(&fragMap)
-
+	
 	// If it fails the socket opening, close it
 	nf, err := nfqueue.Open(&config)
 	if err != nil {
@@ -267,19 +267,30 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	var blacklistMatcher, whitelistMatcher *regexp.Regexp
 
 	if hasBlacklist {
-		blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters, "|"))
+		blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters,"|"))
 	}
 
-	if hasWhitelist {
-		whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters, "|"))
+	if hasWhitelist{
+		whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters,"|"))
 	}
+
+	/*blacklistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
+	if hasBlacklist {
+		blacklistMatcher = ahocorasick.NewStringMatcher(blacklist[0].Filters)
+	}
+
+	whitelistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
+	if hasWhitelist {
+		whitelistMatcher = ahocorasick.NewStringMatcher(whitelist[0].Filters)
+	}*/
 
 	//function executed for every packet (or packet fragment) in input
 	fn := func(packet nfqueue.Attribute) int {
-		log.Println(number)
+		//log.Println(number)
 		select {
 		// if the json is updated, update the regex
 		case <-alertFileEdited:
+
 			tempServices := readJson(path)
 			//if json is valid,then apply changes
 			if len(tempServices.Services) != 0 {
@@ -290,16 +301,12 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			hasBlacklist = (len(blacklist) != 0)
 			hasWhitelist = (len(whitelist) != 0)
 
-			for i := 0; i < len(stats.ServiceAccess); i++ { // also updating services info in stats
-				stats.ServiceAccess[i].Service = services.Services[i]
-			}
-
 			if hasBlacklist {
-				blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters, "|"))
+				blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters,"|"))
 			}
-
-			if hasWhitelist {
-				whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters, "|"))
+		
+			if hasWhitelist{
+				whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters,"|"))
 			}
 
 		default:
@@ -319,7 +326,6 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		// stringified payload
 		payloadString := string(payload)
-		log.Println(payloadString)
 
 		// calculate offset to ignore IP and TCP/UDP headers
 		var offset int
@@ -348,7 +354,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 			//fmt.Println(newResource)
 			splitted = strings.Split(newResource, "HTTP")[0]
-
+			//! CAN CAUSE CRASH
 			newResource = strings.Split(splitted, " ")[1]
 			newMethodType = strings.Split(splitted, " ")[0] // retrieving the method used
 
@@ -411,7 +417,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 				nf.SetVerdict(id, nfqueue.NfDrop)
 
 				boundary = bound2Reg.Split(payloadString[offset:], -1)
-
+				//fmt.Println(boundary)
 				//* we use shortcircuiting for avoiding a crash here, we check if the fragment is not already counted then we update is value
 				if len(boundary) > 1 && !fragMap[boundary[1][:16]].WasNeverBlocked {
 					stats.ServiceAccess[number].Hits[fragMap[boundary[1][:16]].Idx].Blocked++
@@ -435,7 +441,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 				warnings <- "packet dropped because of " + services.Services[number].Name + " blacklist" // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 				boundary = bound2Reg.Split(payloadString[offset:], -1) // eventually looking for the boundary identifier (included only if it is a fragment)
-
+				//fmt.Println(len(boundary))
 				//* we use shortcircuiting for avoiding a crash here, we check if the fragment is not already counted then we update is value
 				if len(boundary) > 1 && !fragMap[boundary[1][:16]].WasNeverBlocked { // if there is the boundary identifier and any of the packet fragment was never blocked, update the stats
 
@@ -446,7 +452,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 					tempStruct.Time = time.Now()
 					fragMap[boundary[1][:16]] = tempStruct
 
-				} else if len(boundary) == 1 && !hexReg.MatchString(boundary[0][:16]) { // if there is not a boundary identifier (so it is an entire packet) just update stats
+				} else if len(boundary) == 1 && len(boundary[0])>0 && !hexReg.MatchString(boundary[0][:16]) { // if there is not a boundary identifier (so it is an entire packet) just update stats
 
 					stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
 
@@ -470,6 +476,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		printErrors("Error")
 		return 42
 	}
+
 	//add to nfqueue callback fn for every packet that matches the rules
 	err = nf.RegisterWithErrorFunc(ctx, fn, r)
 	if err != nil {
@@ -519,11 +526,9 @@ func setRules(services Services, path string) {
 
 	// loop for start the go routines with fwFilter
 	for k := 0; k < len(services.Services); k++ {
-		/*go func(k int, services Services) {
+		go func(k int, services Services) {
 			fwFilter(services, k, alertFileEdited, path)
-		}(k, services)*/
-
-		go fwFilter(services, k, alertFileEdited, path)
+		}(k, services)
 
 		var newServiceAccess ServiceAccess // adding a new service access in stats for each service from the config file
 		newServiceAccess.Service = services.Services[k]
@@ -554,7 +559,6 @@ func statsHandler(w http.ResponseWriter, r *http.Request) { // handling stats qu
 	if err != nil {
 		log.Fatalf("marshaling error: %s", err)
 	}
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, string(marshaled)) // sending stats in pretty JSON
 
 }
