@@ -132,7 +132,6 @@ func readJson(path string) Services {
 	var services Services
 	if json.Valid(byteValue) {
 		json.Unmarshal(byteValue, &services)
-		stats.FileEdits++ // increasing file edits stats
 		//newStats <- 1
 		return services
 	}
@@ -161,6 +160,7 @@ func watchFile(path string, alertFile chan string) {
 		time.Sleep(5 * time.Second)
 		newHash := hash(path)
 		if oldHash != newHash {
+			stats.FileEdits++ // increasing file edits stats
 			infos <- "Configuration file edited"
 			alertFile <- "-" // notifying that the file has changed
 		}
@@ -274,22 +274,12 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters, "|"))
 	}
 
-	/*blacklistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
-	if hasBlacklist {
-		blacklistMatcher = ahocorasick.NewStringMatcher(blacklist[0].Filters)
-	}
-
-	whitelistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
-	if hasWhitelist {
-		whitelistMatcher = ahocorasick.NewStringMatcher(whitelist[0].Filters)
-	}*/
-
 	//function executed for every packet (or packet fragment) in input
 	fn := func(packet nfqueue.Attribute) int {
+		log.Println(number)
 		select {
 		// if the json is updated, update the regex
 		case <-alertFileEdited:
-
 			tempServices := readJson(path)
 			//if json is valid,then apply changes
 			if len(tempServices.Services) != 0 {
@@ -299,6 +289,10 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			whitelist = services.Services[number].RulesList.Whitelist
 			hasBlacklist = (len(blacklist) != 0)
 			hasWhitelist = (len(whitelist) != 0)
+
+			for i := 0; i < len(stats.ServiceAccess); i++ { // also updating services info in stats
+				stats.ServiceAccess[i].Service = services.Services[i]
+			}
 
 			if hasBlacklist {
 				blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters, "|"))
@@ -325,6 +319,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		// stringified payload
 		payloadString := string(payload)
+		log.Println(payloadString)
 
 		// calculate offset to ignore IP and TCP/UDP headers
 		var offset int
@@ -467,7 +462,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		}
 		//newStats <- 1
 		//warnings <- payloadString[offset:] // just printing the payload - CONCURRENT <- is printed after "FINE PACCHETTO"
-		log.Println(number)
+
 		return 0
 	}
 
@@ -524,10 +519,11 @@ func setRules(services Services, path string) {
 
 	// loop for start the go routines with fwFilter
 	for k := 0; k < len(services.Services); k++ {
-		go func(k int, services Services) {
-			log.Print(k)
+		/*go func(k int, services Services) {
 			fwFilter(services, k, alertFileEdited, path)
-		}(k, services)
+		}(k, services)*/
+
+		go fwFilter(services, k, alertFileEdited, path)
 
 		var newServiceAccess ServiceAccess // adding a new service access in stats for each service from the config file
 		newServiceAccess.Service = services.Services[k]

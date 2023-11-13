@@ -81,30 +81,39 @@ let refreshSeconds = 0
 function updateRefresh(seconds) { // updating the refresh time
     let button
     if (seconds === 0) {
-        button = document.getElementsByTagName("button")[3]
-    }
-    else if (seconds === 20) {
-        button = document.getElementsByTagName("button")[0]
-    }
-    else if (seconds === 60) {
-        button = document.getElementsByTagName("button")[1]
+        button = document.getElementsByTagName("button")[4]
+        document.getElementById("nextRefresh").classList.add("d-none")
+        clearInterval(refreshInterval) // if the refresh was previously set, clearing the interval
+        clearInterval(textRefreshInterval)
     }
     else {
-        button = document.getElementsByTagName("button")[2]
+        document.getElementById("nextRefresh").classList.remove("d-none")
+        if(seconds === 5){
+            button = document.getElementsByTagName("button")[0]
+        }
+        else if (seconds === 20) {
+            button = document.getElementsByTagName("button")[1]
+        }
+        else if (seconds === 60) {
+            button = document.getElementsByTagName("button")[2]
+        }
+        else {
+            button = document.getElementsByTagName("button")[3]
+        }
+        refreshSeconds = seconds - 1 // tracking the refresh seconds also with this global variable: useful for the refresh text
+
+        clearInterval(refreshInterval) // if the refresh was previously set, clearing the interval
+        clearInterval(textRefreshInterval)
+        refreshInterval = setInterval(fetchData, seconds * 1000) // setting the new refresh time
+        nextRefreshCounter = refreshSeconds
+        textRefreshInterval = setInterval(showRefreshText, 1000)
     }
-    refreshSeconds = seconds - 1 // tracking the refresh seconds also with this global variable: useful for the refresh text
 
     Array.from(document.getElementsByTagName("button")).forEach(element => {
         element.style.backgroundColor = ""
     })
     button.style.backgroundColor = "#1cf1fb"
 
-    if (seconds > 0) { // if the automatic refresh is set
-        if (refreshInterval != null) clearInterval(refreshInterval) // if the refresh was previously set, clearing the interval
-        refreshInterval = setInterval(fetchData, seconds * 1000) // setting the new refresh time
-        nextRefreshCounter = refreshSeconds
-        textRefreshInterval = setInterval(showRefreshText, 1000)
-    }
 
 }
 
@@ -113,7 +122,6 @@ function showRefreshText() {
     refreshText.innerHTML = `Next in ${nextRefreshCounter}s`
     nextRefreshCounter--
     if (nextRefreshCounter == 0) nextRefreshCounter = refreshSeconds
-
 }
 
 
