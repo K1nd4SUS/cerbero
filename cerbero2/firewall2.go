@@ -609,16 +609,14 @@ func main() {
 	//path specification
 	var pathFlag = flag.String("path", "./config.json", "Path to the json config file")
 	//chain specification
-	var dockerized = flag.String("docker", "y", "Are the services on docker? [Y/n]")
+	var chainType = flag.String("docker", "INPUT", "select iptables chain list")
 
 	flag.Parse()
 	success <- "Flags parsed"
 
-	if *dockerized == "n" {
-		chainType = "INPUT"
-	}
+	
 
-	infos <- "chain " + chainType + " selected"
+	infos <- "chain " + *chainType + " selected"
 	nfqConfig := uint16(*nfqFlag)
 	path := *pathFlag
 
