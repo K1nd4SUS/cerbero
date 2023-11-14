@@ -298,6 +298,12 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 	//function executed for every packet (or packet fragment) in input
 	fn := func(packet nfqueue.Attribute) int {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("Recovered in f", r)
+			}
+		}()
+
 		//log.Println(number)
 		select {
 		// if the json is updated, update the regex
@@ -609,14 +615,14 @@ func main() {
 	//path specification
 	var pathFlag = flag.String("path", "./config.json", "Path to the json config file")
 	//chain specification
-	var chainType = flag.String("docker", "INPUT", "select iptables chain list")
+	chainType = *(flag.String("docker", "INPUT", "select iptables chain list"))
 
 	flag.Parse()
 	success <- "Flags parsed"
 
 	
 
-	infos <- "chain " + *chainType + " selected"
+	infos <- "chain " + chainType + " selected"
 	nfqConfig := uint16(*nfqFlag)
 	path := *pathFlag
 
