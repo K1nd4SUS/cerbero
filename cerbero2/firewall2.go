@@ -168,6 +168,7 @@ func watchFile(path string, alertFile chan string) {
 	}
 }
 
+//Periodically delete map for fragmented packets (optimization)
 func watchMap(mapPointer *map[string]ResInfo){
 	for {
 		time.Sleep(5 * time.Second)
@@ -236,6 +237,15 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	whitelist := services.Services[number].RulesList.Whitelist
 	hasBlacklist := (len(blacklist) != 0)
 	hasWhitelist := (len(whitelist) != 0)
+
+	//did it for checking inside filters, could have caused crash
+	if(hasWhitelist){
+		hasWhitelist=len(whitelist[0].Filters) != 0
+	}
+	if(hasBlacklist){
+		hasBlacklist=len(blacklist[0].Filters) != 0
+	}
+	
 	var nfqConfig uint16 = uint16(services.Services[number].Nfq)
 	var protocol string = services.Services[number].Protocol
 
@@ -274,6 +284,8 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters,"|"))
 	}
 
+	
+
 	/*blacklistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
 	if hasBlacklist {
 		blacklistMatcher = ahocorasick.NewStringMatcher(blacklist[0].Filters)
@@ -296,10 +308,20 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			if len(tempServices.Services) != 0 {
 				services = tempServices
 			}
+			
 			blacklist = services.Services[number].RulesList.Blacklist
 			whitelist = services.Services[number].RulesList.Whitelist
 			hasBlacklist = (len(blacklist) != 0)
 			hasWhitelist = (len(whitelist) != 0)
+
+			//did it for checking inside filters, could have caused crash
+			if(hasWhitelist){
+				hasWhitelist=len(whitelist[0].Filters) != 0
+			}
+			if(hasBlacklist){
+				hasBlacklist=len(blacklist[0].Filters) != 0
+			}
+	
 
 			if hasBlacklist {
 				blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters,"|"))
@@ -545,11 +567,16 @@ func setRules(services Services, path string) {
 }
 
 func statsHandler(w http.ResponseWriter, r *http.Request) { // handling stats queries over API
+	
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	if r.URL.Path != "/metrics" {
 		http.Error(w, "404 not found.", http.StatusNotFound)
 		return
 	}
-
+	
+	
+	
 	if r.Method != "GET" {
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 		return
