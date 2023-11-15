@@ -365,7 +365,6 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		//fmt.Println("\x1b[38;5;129m", "PACKET START", "\033[0m")
 		//log.Println("lunghezza ", len(payloadString[offset:]), " offset ", offset)
-		//log.Println(payloadString)
 		// to manage the requested resource piece of information
 		var newResource string
 		var newMethodType = ""
@@ -618,14 +617,13 @@ func main() {
 	//path specification
 	var pathFlag = flag.String("path", "./config.json", "Path to the json config file")
 	//chain specification
-	chainType = *(flag.String("docker", "INPUT", "select iptables chain list"))
+	var chainType = flag.String("docker", "INPUT", "select iptables chain list")
 
 	flag.Parse()
 	success <- "Flags parsed"
-
 	
 
-	infos <- "chain " + chainType + " selected"
+	infos <- "chain " + *chainType + " selected"
 	nfqConfig := uint16(*nfqFlag)
 	path := *pathFlag
 

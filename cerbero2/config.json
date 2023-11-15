@@ -27,25 +27,8 @@
           {
             "type":"regex",
             "filters":[
-              "(?i)helo"
-            ]
-          }
-        ],
-        "whitelist":[
-          
-        ]                   
-      }
-    },
-    {
-      "name": "test_service-NC",
-      "protocol": "tcp",
-      "dport": 8084,
-      "rulesList": {
-        "blacklist": [
-          {
-            "type":"regex",
-            "filters":[
-              "(?i)cia"
+              "(?i)helo",
+              ".*"
             ]
           }
         ],
