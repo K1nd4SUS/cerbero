@@ -79,8 +79,7 @@ type ResInfo struct {
 	Time			time.Time // the moment a fragment of the packet was received for the last time
 }
 
-// flag for the chain selection on iptables
-var chainType = "DOCKER-USER"
+
 
 var delta = 60 * time.Second
 
@@ -365,6 +364,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		//fmt.Println("\x1b[38;5;129m", "PACKET START", "\033[0m")
 		//log.Println("lunghezza ", len(payloadString[offset:]), " offset ", offset)
+		//log.Println(payloadString)
 		// to manage the requested resource piece of information
 		var newResource string
 		var newMethodType = ""
@@ -519,13 +519,14 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 }
 
 // set initial rules on iptables and call fwFilter
-func setRules(services Services, path string) {
+func setRules(services Services, path string, chainType string) {
 	for _, ser := range services.Services {
 		log.Println(ser)
 	}
 
 	// loop for create iptables rules
 	for k := 0; k < len(services.Services); k++ {
+		fmt.Println(chainType)
 		cmd := exec.Command("iptables", "-I", chainType, "-p", services.Services[k].Protocol, "--dport", strconv.FormatInt(int64(services.Services[k].Dport), 10), "-j", "NFQUEUE", "--queue-num", strconv.FormatInt(int64(services.Services[k].Nfq), 10))
 		cmd.Run()
 	}
@@ -617,11 +618,12 @@ func main() {
 	//path specification
 	var pathFlag = flag.String("path", "./config.json", "Path to the json config file")
 	//chain specification
-	var chainType = flag.String("docker", "INPUT", "select iptables chain list")
+	var chainType = flag.String("docker", "INPUT", "select iptables chain list")// flag for the chain selection on iptables
 
+
+	
 	flag.Parse()
 	success <- "Flags parsed"
-	
 
 	infos <- "chain " + *chainType + " selected"
 	nfqConfig := uint16(*nfqFlag)
@@ -631,6 +633,6 @@ func main() {
 	serviceList := checkIn(path, nfqConfig)
 
 	//here we will call a func that executes everything
-	setRules(serviceList, path)
+	setRules(serviceList, path,*chainType)
 
 }
