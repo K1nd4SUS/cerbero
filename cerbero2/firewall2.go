@@ -8,12 +8,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"strings"
 
 	"regexp"
@@ -74,12 +74,10 @@ var stats Stats
 // Mapping packets if splitted in fragments at the IP layer
 // Every boundary code is mapped to a resInfo sruct var
 type ResInfo struct {
-	WasNeverBlocked bool // if the fragment was blocked
-	Idx             int  // the fragment belongs to a packet interested to a particular resource registered in the Hit array at this index.
-	Time			time.Time // the moment a fragment of the packet was received for the last time
+	WasNeverBlocked bool      // if the fragment was blocked
+	Idx             int       // the fragment belongs to a packet interested to a particular resource registered in the Hit array at this index.
+	Time            time.Time // the moment a fragment of the packet was received for the last time
 }
-
-
 
 var delta = 60 * time.Second
 
@@ -125,8 +123,9 @@ func printNormal() {
 
 // serialize input
 func readJson(path string) Services {
-	jsonFile, _ := os.Open(path)
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	// useless goddog
+	// jsonFile, _ := os.Open(path)
+	byteValue, _ := os.ReadFile(path)
 
 	var services Services
 	if json.Valid(byteValue) {
@@ -167,8 +166,8 @@ func watchFile(path string, alertFile chan string) {
 	}
 }
 
-//Periodically delete map for fragmented packets (optimization)
-func watchMap(mapPointer *map[string]ResInfo){
+// Periodically delete map for fragmented packets (optimization)
+func watchMap(mapPointer *map[string]ResInfo) {
 	for {
 		time.Sleep(5 * time.Second)
 		for key, val := range *mapPointer {
@@ -238,13 +237,13 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	hasWhitelist := (len(whitelist) != 0)
 
 	//did it for checking inside filters, could have caused crash
-	if(hasWhitelist){
-		hasWhitelist=len(whitelist[0].Filters) != 0
+	if hasWhitelist {
+		hasWhitelist = len(whitelist[0].Filters) != 0
 	}
-	if(hasBlacklist){
-		hasBlacklist=len(blacklist[0].Filters) != 0
+	if hasBlacklist {
+		hasBlacklist = len(blacklist[0].Filters) != 0
 	}
-	
+
 	var nfqConfig uint16 = uint16(services.Services[number].Nfq)
 	var protocol string = services.Services[number].Protocol
 
@@ -263,7 +262,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	var fragMap = make(map[string]ResInfo) // Fragments map. It maps boundary -> resInfo Struct
 	//delete old elements
 	go watchMap(&fragMap)
-	
+
 	// If it fails the socket opening, close it
 	nf, err := nfqueue.Open(&config)
 	if err != nil {
@@ -276,14 +275,12 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	var blacklistMatcher, whitelistMatcher *regexp.Regexp
 
 	if hasBlacklist {
-		blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters,"|"))
+		blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters, "|"))
 	}
 
-	if hasWhitelist{
-		whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters,"|"))
+	if hasWhitelist {
+		whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters, "|"))
 	}
-
-	
 
 	/*blacklistMatcher := ahocorasick.NewStringMatcher(make([]string, 0))
 	if hasBlacklist {
@@ -313,27 +310,26 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 			if len(tempServices.Services) != 0 {
 				services = tempServices
 			}
-			
+
 			blacklist = services.Services[number].RulesList.Blacklist
 			whitelist = services.Services[number].RulesList.Whitelist
 			hasBlacklist = (len(blacklist) != 0)
 			hasWhitelist = (len(whitelist) != 0)
 
 			//did it for checking inside filters, could have caused crash
-			if(hasWhitelist){
-				hasWhitelist=len(whitelist[0].Filters) != 0
+			if hasWhitelist {
+				hasWhitelist = len(whitelist[0].Filters) != 0
 			}
-			if(hasBlacklist){
-				hasBlacklist=len(blacklist[0].Filters) != 0
+			if hasBlacklist {
+				hasBlacklist = len(blacklist[0].Filters) != 0
 			}
-	
 
 			if hasBlacklist {
-				blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters,"|"))
+				blacklistMatcher = regexp.MustCompile(strings.Join(blacklist[0].Filters, "|"))
 			}
-		
-			if hasWhitelist{
-				whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters,"|"))
+
+			if hasWhitelist {
+				whitelistMatcher = regexp.MustCompile(strings.Join(whitelist[0].Filters, "|"))
 			}
 
 		default:
@@ -378,19 +374,19 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		var boundary = []string{""}
 		//TODO forse qui è da mettere anche && match con methreg
-		
-		if ((len(payloadString[offset:]) > 0) && httpScheme.MatchString(payloadString[offset:])){ // if the packet contains anything
+
+		if (len(payloadString[offset:]) > 0) && httpScheme.MatchString(payloadString[offset:]) { // if the packet contains anything
 			newResource = methReg.Split(payloadString[offset:], 1)[0] // retrieving the resource
 
 			splitted = strings.Split(newResource, "HTTP")[0]
-			newResource = strings.Split(splitted, " ")[1] // retrieving the resource
+			newResource = strings.Split(splitted, " ")[1]   // retrieving the resource
 			newMethodType = strings.Split(splitted, " ")[0] // retrieving the method used
 
-		} else if(httpScheme.MatchString(payloadString[offset:])){
+		} else if httpScheme.MatchString(payloadString[offset:]) {
 			newResource = methReg.Split(payloadString[offset:], 1)[0] // retrieving the resource
 			newResource = strings.Split(newResource, "HTTP")[0]
-		}else{
-			newResource= payloadString[offset:]
+		} else {
+			newResource = payloadString[offset:]
 		}
 
 		if methReg.MatchString(payloadString[offset:]) { // if this packet is a fragment and is the first fragment, it must contain GET/POST/... string
@@ -471,7 +467,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 				warnings <- "packet dropped because of " + services.Services[number].Name + " blacklist" // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 				boundary = bound2Reg.Split(payloadString[offset:], -1) // eventually looking for the boundary identifier (included only if it is a fragment)
-				
+
 				//* we use shortcircuiting for avoiding a crash here, we check if the fragment is not already counted then we update is value
 				if httpScheme.MatchString(payloadString[offset:]) && len(boundary) > 1 && !fragMap[boundary[1][:16]].WasNeverBlocked { // if there is the boundary identifier and any of the packet fragment was never blocked, update the stats
 
@@ -482,7 +478,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 					tempStruct.Time = time.Now()
 					fragMap[boundary[1][:16]] = tempStruct
 
-				} else if httpScheme.MatchString(payloadString[offset:]) && len(boundary) == 1 && len(boundary[0])>0 && !hexReg.MatchString(boundary[0][:16]) { // if there is not a boundary identifier (so it is an entire packet) just update stats
+				} else if httpScheme.MatchString(payloadString[offset:]) && len(boundary) == 1 && len(boundary[0]) > 0 && !hexReg.MatchString(boundary[0][:16]) { // if there is not a boundary identifier (so it is an entire packet) just update stats
 
 					stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
 
@@ -576,16 +572,14 @@ func setRules(services Services, path string, chainType string) {
 }
 
 func statsHandler(w http.ResponseWriter, r *http.Request) { // handling stats queries over API
-	
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.URL.Path != "/metrics" {
 		http.Error(w, "404 not found.", http.StatusNotFound)
 		return
 	}
-	
-	
-	
+
 	if r.Method != "GET" {
 		http.Error(w, "Method is not supported.", http.StatusNotFound)
 		return
@@ -600,6 +594,15 @@ func statsHandler(w http.ResponseWriter, r *http.Request) { // handling stats qu
 }
 
 func main() {
+	u, err := user.Current()
+	if err != nil {
+		fmt.Println("Error running the program. Exiting...")
+		return
+	}
+	if u.Uid != "0" {
+		fmt.Println("This firewall must be run as root.")
+		return
+	}
 
 	go printWarnings()
 	go printNormal()
@@ -618,10 +621,8 @@ func main() {
 	//path specification
 	var pathFlag = flag.String("path", "./config.json", "Path to the json config file")
 	//chain specification
-	var chainType = flag.String("docker", "INPUT", "select iptables chain list")// flag for the chain selection on iptables
+	var chainType = flag.String("docker", "INPUT", "select iptables chain list") // flag for the chain selection on iptables
 
-
-	
 	flag.Parse()
 	success <- "Flags parsed"
 
@@ -633,6 +634,6 @@ func main() {
 	serviceList := checkIn(path, nfqConfig)
 
 	//here we will call a func that executes everything
-	setRules(serviceList, path,*chainType)
+	setRules(serviceList, path, *chainType)
 
 }
