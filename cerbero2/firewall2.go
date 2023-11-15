@@ -298,11 +298,11 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 	//function executed for every packet (or packet fragment) in input
 	fn := func(packet nfqueue.Attribute) int {
-		defer func() {
-			if r := recover(); r != nil {
-				fmt.Println("Recovered in f", r)
-			}
-		}()
+		// defer func() {
+		// 	if r := recover(); r != nil {
+		// 		fmt.Println("Recovered in f", r)
+		// 	}
+		// }()
 
 		//log.Println(number)
 		select {
@@ -365,7 +365,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 
 		//fmt.Println("\x1b[38;5;129m", "PACKET START", "\033[0m")
 		//log.Println("lunghezza ", len(payloadString[offset:]), " offset ", offset)
-
+		//log.Println(payloadString)
 		// to manage the requested resource piece of information
 		var newResource string
 		var newMethodType = ""
@@ -375,20 +375,23 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 		methReg, _ := regexp.Compile("(GET )|(POST )|(PUT )|(PATCH )|(DELETE )|(HEAD )|(CONNECT )|(OPTIONS )|(TRACE )")
 		boundReg, _ := regexp.Compile("boundary=------------------------")
 		bound2Reg, _ := regexp.Compile("--------------------------")
+		httpScheme, _ := regexp.Compile("HTTP")
+
 		var boundary = []string{""}
 		//TODO forse qui è da mettere anche && match con methreg
-		if len(payloadString[offset:]) > 0 { // if the packet contains anything
-			newResource = methReg.Split(payloadString[offset:], 1)[0] // retrieving the resource name
+		
+		if ((len(payloadString[offset:]) > 0) && httpScheme.MatchString(payloadString[offset:])){ // if the packet contains anything
+			newResource = methReg.Split(payloadString[offset:], 1)[0] // retrieving the resource
 
-			//fmt.Println(newResource)
 			splitted = strings.Split(newResource, "HTTP")[0]
-			//! CAN CAUSE CRASH
-			newResource = strings.Split(splitted, " ")[1]
+			newResource = strings.Split(splitted, " ")[1] // retrieving the resource
 			newMethodType = strings.Split(splitted, " ")[0] // retrieving the method used
 
-		} else {
-			newResource = methReg.Split(payloadString[offset:], 1)[0]
+		} else if(httpScheme.MatchString(payloadString[offset:])){
+			newResource = methReg.Split(payloadString[offset:], 1)[0] // retrieving the resource
 			newResource = strings.Split(newResource, "HTTP")[0]
+		}else{
+			newResource= payloadString[offset:]
 		}
 
 		if methReg.MatchString(payloadString[offset:]) { // if this packet is a fragment and is the first fragment, it must contain GET/POST/... string
@@ -447,14 +450,14 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 				boundary = bound2Reg.Split(payloadString[offset:], -1)
 				//fmt.Println(boundary)
 				//* we use shortcircuiting for avoiding a crash here, we check if the fragment is not already counted then we update is value
-				if len(boundary) > 1 && !fragMap[boundary[1][:16]].WasNeverBlocked {
+				if httpScheme.MatchString(payloadString[offset:]) && len(boundary) > 1 && !fragMap[boundary[1][:16]].WasNeverBlocked {
 					stats.ServiceAccess[number].Hits[fragMap[boundary[1][:16]].Idx].Blocked++
 					tempStruct := fragMap[boundary[1][:16]]
 					tempStruct.WasNeverBlocked = true
 					tempStruct.Time = time.Now()
 					fragMap[boundary[1][:16]] = tempStruct
 
-				} else if len(boundary) == 1 && !hexReg.MatchString(boundary[0][:16]) {
+				} else if httpScheme.MatchString(payloadString[offset:]) && len(boundary) == 1 && !hexReg.MatchString(boundary[0][:16]) {
 
 					stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
 
@@ -469,9 +472,9 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 				warnings <- "packet dropped because of " + services.Services[number].Name + " blacklist" // + "ID: " + strconv.FormatUint(uint64(id), 10)
 				nf.SetVerdict(id, nfqueue.NfDrop)
 				boundary = bound2Reg.Split(payloadString[offset:], -1) // eventually looking for the boundary identifier (included only if it is a fragment)
-				//fmt.Println(len(boundary))
+				
 				//* we use shortcircuiting for avoiding a crash here, we check if the fragment is not already counted then we update is value
-				if len(boundary) > 1 && !fragMap[boundary[1][:16]].WasNeverBlocked { // if there is the boundary identifier and any of the packet fragment was never blocked, update the stats
+				if httpScheme.MatchString(payloadString[offset:]) && len(boundary) > 1 && !fragMap[boundary[1][:16]].WasNeverBlocked { // if there is the boundary identifier and any of the packet fragment was never blocked, update the stats
 
 					//updating the fragments map
 					stats.ServiceAccess[number].Hits[fragMap[boundary[1][:16]].Idx].Blocked++
@@ -480,7 +483,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 					tempStruct.Time = time.Now()
 					fragMap[boundary[1][:16]] = tempStruct
 
-				} else if len(boundary) == 1 && len(boundary[0])>0 && !hexReg.MatchString(boundary[0][:16]) { // if there is not a boundary identifier (so it is an entire packet) just update stats
+				} else if httpScheme.MatchString(payloadString[offset:]) && len(boundary) == 1 && len(boundary[0])>0 && !hexReg.MatchString(boundary[0][:16]) { // if there is not a boundary identifier (so it is an entire packet) just update stats
 
 					stats.ServiceAccess[number].Hits[lastResourceIndex].Blocked++
 
@@ -508,7 +511,7 @@ func fwFilter(services Services, number int, alertFileEdited chan string, path s
 	//add to nfqueue callback fn for every packet that matches the rules
 	err = nf.RegisterWithErrorFunc(ctx, fn, r)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return
 	}
 
