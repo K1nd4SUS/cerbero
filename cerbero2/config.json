@@ -9,8 +9,8 @@
           {
             "type":"regex",
             "filters":[
-              "(?i)cia", 
-              ".*"
+              "(?i)cia",
+	      "bruh"
             ]
           }
         ],

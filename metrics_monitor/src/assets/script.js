@@ -1,5 +1,5 @@
 async function fetchData() { // calling Cerbero API and then call the fillData procedure
-    fetch("http://127.0.0.1:8082/metrics").then(async (answ) => {
+    fetch("http://10.21.1.185:8082/metrics").then(async (answ) => {
         if (answ.ok) {
             data = await answ.json()
             fillData(data)
