@@ -10,7 +10,7 @@
             "type":"regex",
             "filters":[
               "(?i)cia",
-	      "bruh"
+	            "aaaa"
             ]
           }
         ],
@@ -28,7 +28,7 @@
           {
             "type":"regex",
             "filters":[
-              "(?i)helo"
+		         "bruh"	     
             ]
           }
         ],

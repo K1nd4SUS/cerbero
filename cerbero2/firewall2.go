@@ -16,6 +16,7 @@ import (
 	"os/signal"
 	"os/user"
 	"strings"
+
 	"regexp"
 	"strconv"
 	"sync"
@@ -124,7 +125,7 @@ func printNormal() {
 // serialize input
 func readJson(path string) Services {
 	
-	//jsonFile, _ := os.Open(path)
+	// jsonFile, _ := os.Open(path)
 	byteValue, _ := ioutil.ReadFile(path)
 
 	var services Services
