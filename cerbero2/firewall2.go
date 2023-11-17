@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -124,9 +123,9 @@ func printNormal() {
 
 // serialize input
 func readJson(path string) Services {
-	
+	// useless goddog godpig
 	// jsonFile, _ := os.Open(path)
-	byteValue, _ := ioutil.ReadFile(path)
+	byteValue, _ := os.ReadFile(path)
 
 	var services Services
 	if json.Valid(byteValue) {
