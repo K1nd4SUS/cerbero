@@ -1,16 +1,7 @@
-FROM golang:1.17-alpine
+FROM golang:1.21
 
 WORKDIR /app
+COPY . .
+RUN go mod tidy
 
-COPY go.mod go.sum config.json ./
-RUN go mod download
-
-COPY *.go ./
-
-RUN go build -o /cerbero
-
-EXPOSE 8082
-
-RUN apk add --no-cache sudo
-
-CMD ["sudo", "/cerbero" ]
+CMD go build -o /app/bin/firewall2
