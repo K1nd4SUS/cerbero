@@ -1,0 +1,12 @@
+[
+    {
+        "nfq": 101,
+        "name": "test_service",
+        "protocol": "tcp",
+        "port": 8080,
+        "regex_list": [
+            "ciaociao",
+            "provaprova"
+        ]
+    }
+]
