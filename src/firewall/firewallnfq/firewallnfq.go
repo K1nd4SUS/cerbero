@@ -95,9 +95,6 @@ func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, service servi
 	} else {
 		verdict = nfqueue.NfAccept
 	}
-	if strings.Contains(payloadString, "sdkfjdsfiu") {
-		panic("boh cazzo ne so")
-	}
 	nfq.SetVerdict(*packet.PacketID, verdict)
 
 	logs.PrintDebug(fmt.Sprintf(`"%v": %v packet %q.`, service.Name, func() string {
