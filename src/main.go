@@ -3,9 +3,13 @@ package main
 import (
 	"cerbero3/configuration"
 	"cerbero3/credentials"
+	"cerbero3/firewall"
+	"cerbero3/firewall/rules"
+	"cerbero3/interrupt"
 	"cerbero3/logs"
 	"cerbero3/services"
 	"os"
+	"sync"
 )
 
 func main() {
@@ -42,8 +46,27 @@ func main() {
 	}
 	logs.PrintInfo("Loaded services configuration.")
 
-	// logs.PrintWarning("This is a warning.")
-	// logs.PrintError("This is an error.")
-	// logs.PrintCritical("This is a critical error.")
-	// logs.PrintInfo("This is an info.")
+	logs.PrintInfo("Setting firewall rules...")
+	if err = rules.SetRules(config); err != nil {
+		logs.PrintCritical(err.Error())
+		os.Exit(1)
+	}
+	logs.PrintInfo("Set firewall rules.")
+
+	// whenever "rr <- true" is called, the program is stopped
+	rr := rules.GetRemoveRules(config)
+
+	logs.PrintInfo("Starting firewall...")
+	firewall.Start(rr)
+	logs.PrintInfo("Started firewall.")
+
+	interrupt.Listen(rr)
+
+	// TODO: create alert for when the config file is edited
+
+	// hang this thread; the program will be closed by other means,
+	// being an os interrupt signal or a crash
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	wg.Wait()
 }

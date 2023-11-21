@@ -9,6 +9,6 @@ func IsUserRoot() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// TODO: CRITICAL replace != with ==
-	return u.Uid != "0", nil
+
+	return u.Uid == "0", nil
 }
