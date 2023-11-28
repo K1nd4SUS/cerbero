@@ -7,7 +7,7 @@
 This tool is able to filter packets based on the payload by using regex.
 
 ### Why this tool?
-During an A/D, we often had to drop some malicious packets, but to do it properly we had to understand how the service worked and in which programming language it was written. This process is a waste of time. With this tool we can instead drop the malicious packets before they are received from the vulnerable service, making the process simple and implementation agnostic (basically it works like a WAP that process all packets).
+During an A/D, we often had to drop some malicious packets, but to do it properly we had to understand how the service worked and in which programming language it was written. This process is a waste of time. With this tool we can instead drop the malicious packets before they are received from the vulnerable service, making the process simple and implementation agnostic (basically it works like a WAF that process all packets).
 
 ### Is it against the rules to use this tool? 
 Probably not, but we do not take any responsibility for its use.
