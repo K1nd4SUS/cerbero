@@ -4,11 +4,11 @@ import (
 	"cerbero3/firewall/headers"
 	"cerbero3/firewall/rules"
 	"cerbero3/logs"
+	"cerbero3/metrics"
 	"cerbero3/services"
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/florianl/go-nfqueue"
@@ -85,22 +85,27 @@ func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, service servi
 	}
 	payloadString := string(payload)[offset:]
 
-	// join all the regexes with the | operator
-	// TODO: check if this actually works properly
-	regexMatcher := regexp.MustCompile(strings.Join(service.RegexList, "|"))
-
-	var verdict int
-	if regexMatcher.MatchString(payloadString) {
-		verdict = nfqueue.NfDrop
-	} else {
-		verdict = nfqueue.NfAccept
+	var droppedRegex string
+	verdict := nfqueue.NfAccept
+	for _, regex := range service.RegexList {
+		matcher := regexp.MustCompile(regex)
+		if matcher.MatchString(payloadString) {
+			verdict = nfqueue.NfDrop
+			droppedRegex = regex
+			break
+		}
 	}
 	nfq.SetVerdict(*packet.PacketID, verdict)
+	isDropped := verdict == nfqueue.NfDrop
 
+	metrics.IncrementService(service, isDropped)
+	if isDropped {
+		metrics.IncrementRegex(droppedRegex)
+	}
 	logs.PrintDebug(fmt.Sprintf(`"%v": %v packet %q.`, service.Name, func() string {
 		if verdict == nfqueue.NfAccept {
 			return "accepted"
-		} else if verdict == nfqueue.NfDrop {
+		} else if isDropped {
 			return "dropped"
 		}
 		return ""

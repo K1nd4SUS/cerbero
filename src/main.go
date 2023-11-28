@@ -7,6 +7,7 @@ import (
 	"cerbero3/firewall/rules"
 	"cerbero3/interrupt"
 	"cerbero3/logs"
+	"cerbero3/metrics"
 	"cerbero3/services"
 	"os"
 	"sync"
@@ -22,8 +23,6 @@ func main() {
 		logs.PrintCritical("This firewall must be run as root.")
 		os.Exit(1)
 	}
-
-	// TODO: handle metrics
 
 	logs.PrintInfo("Loading user flags...")
 	config := configuration.GetFlagsConfiguration()
@@ -52,6 +51,10 @@ func main() {
 		os.Exit(1)
 	}
 	logs.PrintInfo("Set firewall rules.")
+
+	logs.PrintInfo("Starting metrics server...")
+	go metrics.StartServer()
+	logs.PrintInfo("Started metrics server.")
 
 	// whenever "rr <- true" is called, the program is stopped
 	rr := rules.GetRemoveRules(config)
