@@ -85,16 +85,13 @@ func StartFirewallForService(rr rules.RemoveRules, serviceIndex int) {
 }
 
 func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, serviceIndex int) int {
-	payload := make([]byte, len(*packet.Payload))
-	copy(payload, *packet.Payload)
-
 	var offset int
 	if services.Services[serviceIndex].Protocol == "udp" {
 		offset = headers.GetUDPHeaderLength()
 	} else if services.Services[serviceIndex].Protocol == "tcp" {
-		offset = headers.GetTCPHeaderLength(payload)
+		offset = headers.GetTCPHeaderLength(*packet.Payload)
 	}
-	payloadString := string(payload)[offset:]
+	payloadString := string(*packet.Payload)[offset:]
 
 	var droppedRegex string
 	verdict := nfqueue.NfAccept
