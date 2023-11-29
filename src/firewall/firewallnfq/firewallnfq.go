@@ -8,7 +8,6 @@ import (
 	"cerbero3/services"
 	"context"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/florianl/go-nfqueue"
@@ -99,11 +98,10 @@ func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, serviceIndex 
 
 	var droppedRegex string
 	verdict := nfqueue.NfAccept
-	for _, regex := range services.Services[serviceIndex].RegexList {
-		matcher := regexp.MustCompile(regex)
+	for _, matcher := range services.Services[serviceIndex].Matchers {
 		if matcher.MatchString(payloadString) {
 			verdict = nfqueue.NfDrop
-			droppedRegex = regex
+			droppedRegex = matcher.String()
 			break
 		}
 	}
