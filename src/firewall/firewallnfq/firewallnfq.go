@@ -56,6 +56,7 @@ func StartFirewallForService(rr rules.RemoveRules, serviceIndex int) {
 	}, func(err error) int {
 		// checks if the error is in the list
 		if skippableErrors[err.Error()] {
+			// TODO: print that it's a skippable error
 			logs.PrintError(err.Error())
 			return 0
 		}
