@@ -12,14 +12,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func IncrementService(service services.Service, dropped bool) {
-	serviceCounters := metricsdb.GetServiceCounters(service)
+func IncrementService(serviceIndex int, dropped bool) {
+	serviceCounters := metricsdb.GetServiceCounters(services.Services[serviceIndex])
 	serviceCounters.TotalPackets.Inc()
 	if dropped {
 		serviceCounters.DroppedPackets.Inc()
 	}
 
-	logs.PrintDebug(fmt.Sprintf("Incremented prometheus counter for service %v (total%v).", service.Name, func() string {
+	logs.PrintDebug(fmt.Sprintf("Incremented prometheus counter for service %v (total%v).", services.Services[serviceIndex].Name, func() string {
 		if dropped {
 			return ", dropped"
 		} else {

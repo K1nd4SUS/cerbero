@@ -14,9 +14,9 @@ import (
 	"github.com/florianl/go-nfqueue"
 )
 
-func StartFirewallForService(rr rules.RemoveRules, service services.Service) {
+func StartFirewallForService(rr rules.RemoveRules, serviceIndex int) {
 	nfqConfig := nfqueue.Config{
-		NfQueue:      service.Nfq,
+		NfQueue:      services.Services[serviceIndex].Nfq,
 		MaxPacketLen: 0xFFFF,
 		MaxQueueLen:  0xFF,
 		Copymode:     nfqueue.NfQnlCopyPacket,
@@ -24,7 +24,7 @@ func StartFirewallForService(rr rules.RemoveRules, service services.Service) {
 		WriteTimeout: 15 * time.Millisecond,
 	}
 
-	logs.PrintDebug(fmt.Sprintf(`Opening nfq for service "%v"...`, service.Name))
+	logs.PrintDebug(fmt.Sprintf(`Opening nfq for service "%v"...`, services.Services[serviceIndex].Name))
 	nfq, err := nfqueue.Open(&nfqConfig)
 	if err != nil {
 		logs.PrintCritical(err.Error())
@@ -32,9 +32,9 @@ func StartFirewallForService(rr rules.RemoveRules, service services.Service) {
 		return
 	}
 	defer nfq.Close()
-	logs.PrintDebug(fmt.Sprintf(`Opened nfq for service "%v".`, service.Name))
+	logs.PrintDebug(fmt.Sprintf(`Opened nfq for service "%v".`, services.Services[serviceIndex].Name))
 
-	logs.PrintDebug(fmt.Sprintf(`Starting background task for service "%v"...`, service.Name))
+	logs.PrintDebug(fmt.Sprintf(`Starting background task for service "%v"...`, services.Services[serviceIndex].Name))
 	ctx := context.Background()
 	err = nfq.RegisterWithErrorFunc(ctx, func(packet nfqueue.Attribute) int {
 		defer func() {
@@ -47,7 +47,7 @@ func StartFirewallForService(rr rules.RemoveRules, service services.Service) {
 			}
 		}()
 
-		return handlePacket(nfq, &packet, service)
+		return handlePacket(nfq, &packet, serviceIndex)
 	}, func(err error) int {
 		logs.PrintCritical(err.Error())
 		rr <- true
@@ -66,28 +66,28 @@ func StartFirewallForService(rr rules.RemoveRules, service services.Service) {
 		rr <- true
 		return
 	}
-	logs.PrintDebug(fmt.Sprintf(`Started background task for service "%v".`, service.Name))
+	logs.PrintDebug(fmt.Sprintf(`Started background task for service "%v".`, services.Services[serviceIndex].Name))
 
 	// block this thread until nfq is done handling the packets,
 	// basically until forever
 	<-ctx.Done()
 }
 
-func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, service services.Service) int {
+func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, serviceIndex int) int {
 	payload := make([]byte, len(*packet.Payload))
 	copy(payload, *packet.Payload)
 
 	var offset int
-	if service.Protocol == "udp" {
+	if services.Services[serviceIndex].Protocol == "udp" {
 		offset = headers.GetUDPHeaderLength()
-	} else if service.Protocol == "tcp" {
+	} else if services.Services[serviceIndex].Protocol == "tcp" {
 		offset = headers.GetTCPHeaderLength(payload)
 	}
 	payloadString := string(payload)[offset:]
 
 	var droppedRegex string
 	verdict := nfqueue.NfAccept
-	for _, regex := range service.RegexList {
+	for _, regex := range services.Services[serviceIndex].RegexList {
 		matcher := regexp.MustCompile(regex)
 		if matcher.MatchString(payloadString) {
 			verdict = nfqueue.NfDrop
@@ -98,11 +98,11 @@ func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, service servi
 	nfq.SetVerdict(*packet.PacketID, verdict)
 	isDropped := verdict == nfqueue.NfDrop
 
-	metrics.IncrementService(service, isDropped)
+	metrics.IncrementService(serviceIndex, isDropped)
 	if isDropped {
 		metrics.IncrementRegex(droppedRegex)
 	}
-	logs.PrintDebug(fmt.Sprintf(`"%v": %v packet %q.`, service.Name, func() string {
+	logs.PrintDebug(fmt.Sprintf(`"%v": %v packet %q.`, services.Services[serviceIndex].Name, func() string {
 		if verdict == nfqueue.NfAccept {
 			return "accepted"
 		} else if isDropped {

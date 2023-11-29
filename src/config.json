@@ -3,10 +3,31 @@
         "nfq": 101,
         "name": "test_service",
         "protocol": "tcp",
-        "port": 8080,
+        "port": 80,
         "regex_list": [
             "ciaociao",
             "provaprova"
+        ]
+    },
+    {
+        "nfq": 102,
+        "name": "test_service_2",
+        "protocol": "tcp",
+        "port": 3300,
+        "regex_list": [
+            "ciaociao",
+            "provaprova"
+        ]
+    },
+    {
+        "nfq": 103,
+        "name": "test_service_3",
+        "protocol": "tcp",
+        "port": 81,
+        "regex_list": [
+            "ciaociao",
+            "provaprova",
+            "0"
         ]
     }
 ]
