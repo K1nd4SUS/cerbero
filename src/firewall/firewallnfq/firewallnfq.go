@@ -14,6 +14,12 @@ import (
 	"github.com/florianl/go-nfqueue"
 )
 
+// errors that are not relevant to the functionality
+// of the firewall
+var skippableErrors = map[string]bool{
+	"netlink receive: recvmsg: no buffer space available": true,
+}
+
 func StartFirewallForService(rr rules.RemoveRules, serviceIndex int) {
 	nfqConfig := nfqueue.Config{
 		NfQueue:      services.Services[serviceIndex].Nfq,
@@ -49,6 +55,12 @@ func StartFirewallForService(rr rules.RemoveRules, serviceIndex int) {
 
 		return handlePacket(nfq, &packet, serviceIndex)
 	}, func(err error) int {
+		// checks if the error is in the list
+		if skippableErrors[err.Error()] {
+			logs.PrintError(err.Error())
+			return 0
+		}
+
 		logs.PrintCritical(err.Error())
 		rr <- true
 		// we are inside a lambda function, if we do "return" the nfq
