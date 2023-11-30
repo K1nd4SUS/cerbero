@@ -58,6 +58,9 @@ func StartFirewallForService(rr rules.RemoveRules, serviceIndex int) {
 		if skippableErrors[err.Error()] {
 			// TODO: print that it's a skippable error
 			logs.PrintError(err.Error())
+
+			// this is a signal to keep receiving messages:
+			// https://pkg.go.dev/github.com/florianl/go-nfqueue#ErrorFunc
 			return 0
 		}
 
