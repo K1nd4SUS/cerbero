@@ -44,7 +44,6 @@ func Load(configurationFile string) error {
 		return fmt.Sprintf("Parsed JSON file: %v", buffer.String())
 	}())
 
-	// TODO: add logging and commenting
 	CompileMatchers()
 
 	return nil
@@ -69,10 +68,14 @@ func CheckServicesValues() error {
 }
 
 func CompileMatchers() {
+	logs.PrintDebug("Compiling regex matchers...")
+
 	for index := range Services {
 		Services[index].Matchers = nil
 		for _, regex := range Services[index].RegexList {
 			Services[index].Matchers = append(Services[index].Matchers, regexp.MustCompile(regex))
 		}
 	}
+
+	logs.PrintDebug("Compiled regex matchers...")
 }
