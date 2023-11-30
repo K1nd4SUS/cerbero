@@ -101,13 +101,20 @@ func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, serviceIndex 
 	verdict := nfqueue.NfAccept
 	for _, matcher := range services.Services[serviceIndex].Matchers {
 		if matcher.MatchString(payloadString) {
+			// immediately drop the packet when the string matches
+			// the regex; this SHOULD have a very slight performance
+			// boost over saving the verdict first and then setting
+			// it out of the loop
+			nfq.SetVerdict(*packet.PacketID, nfqueue.NfDrop)
 			verdict = nfqueue.NfDrop
 			droppedRegex = matcher.String()
-			break
+
+			goto verdictSet
 		}
 	}
-	nfq.SetVerdict(*packet.PacketID, verdict)
+	nfq.SetVerdict(*packet.PacketID, nfqueue.NfAccept)
 
+verdictSet:
 	go handleLogsAndMetricsForPacket(payloadString, serviceIndex, verdict == nfqueue.NfDrop, droppedRegex)
 
 	// this is a signal to keep receiving messages:
