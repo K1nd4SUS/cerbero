@@ -12,7 +12,7 @@ type Configuration struct {
 	Verbose           bool
 
 	// the max port is 65535, a 16-bit number
-	MetricsPort int16
+	MetricsPort int
 }
 
 func GetFlagsConfiguration() Configuration {
@@ -26,13 +26,17 @@ func GetFlagsConfiguration() Configuration {
 		ConfigurationFile: *pConfigurationFile,
 		Chain:             *pChain,
 		Verbose:           *pVerbose,
-		MetricsPort:       int16(*pMetricsPort),
+		MetricsPort:       *pMetricsPort,
 	}
 }
 
 func CheckValues(c Configuration) error {
 	if _, err := os.Open(c.ConfigurationFile); err != nil {
 		return errors.New("Configuration file not found.")
+	}
+
+	if !(1 <= c.MetricsPort && c.MetricsPort <= 65535) {
+		return errors.New("Invalid port for metrics, must be a value from 1 to 65535.")
 	}
 
 	// TODO: check if chain exists (?)
