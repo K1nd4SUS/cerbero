@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"cerbero3/configuration"
 	"cerbero3/logs"
 	"cerbero3/metrics/metricsdb"
 	"cerbero3/metrics/metricsregex"
@@ -35,10 +36,9 @@ func IncrementRegex(regex string) {
 	logs.PrintDebug(fmt.Sprintf("Incremented prometheus counter for regex %v (dropped).", metricsregex.ToHex(regex)))
 }
 
-func StartServer() {
-	// TODO: make the port configurable
+func StartServer(config configuration.Configuration) {
 	http.Handle("/metrics", promhttp.Handler())
-	err := http.ListenAndServe(":9090", nil)
+	err := http.ListenAndServe(fmt.Sprintf(":%v", config.MetricsPort), nil)
 	if err != nil {
 		logs.PrintCritical(err.Error())
 		os.Exit(1)

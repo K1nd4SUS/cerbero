@@ -9,6 +9,7 @@ import (
 	"cerbero3/logs"
 	"cerbero3/metrics"
 	"cerbero3/services"
+	"fmt"
 	"os"
 	"sync"
 )
@@ -53,8 +54,8 @@ func main() {
 	logs.PrintInfo("Set firewall rules.")
 
 	logs.PrintInfo("Starting metrics server...")
-	go metrics.StartServer()
-	logs.PrintInfo("Started metrics server.")
+	go metrics.StartServer(config)
+	logs.PrintInfo(fmt.Sprintf("Started metrics server on port %v.", config.MetricsPort))
 
 	// whenever "rr <- true" is called, the program is stopped
 	rr := rules.GetRemoveRules(config)
