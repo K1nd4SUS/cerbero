@@ -104,22 +104,24 @@ func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, serviceIndex 
 		}
 	}
 	nfq.SetVerdict(*packet.PacketID, verdict)
-	isDropped := verdict == nfqueue.NfDrop
 
+	go handleLogsAndMetricsForPacket(payloadString, serviceIndex, verdict == nfqueue.NfDrop, droppedRegex)
+
+	// this is a signal to keep receiving messages:
+	// https://pkg.go.dev/github.com/florianl/go-nfqueue#ErrorFunc
+	return 0
+}
+
+func handleLogsAndMetricsForPacket(payloadString string, serviceIndex int, isDropped bool, droppedRegex string) {
 	metrics.IncrementService(serviceIndex, isDropped)
 	if isDropped {
 		metrics.IncrementRegex(droppedRegex)
 	}
 	logs.PrintDebug(fmt.Sprintf(`"%v": %v packet %q.`, services.Services[serviceIndex].Name, func() string {
-		if verdict == nfqueue.NfAccept {
+		if !isDropped {
 			return "accepted"
-		} else if isDropped {
+		} else {
 			return "dropped"
 		}
-		return ""
 	}(), payloadString))
-
-	// this is a signal to keep receiving messages:
-	// https://pkg.go.dev/github.com/florianl/go-nfqueue#ErrorFunc
-	return 0
 }
