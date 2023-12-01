@@ -29,7 +29,6 @@ var regexCountersJob = metricsjobs.CreatingCountersJob{}
 func createServiceCounters(service services.Service) serviceCounters {
 	serviceCountersJob.Add(1)
 
-	// TODO: handle panic from promauto.NewCounter
 	newServiceCounters := serviceCounters{
 		TotalPackets: promauto.NewCounter(prometheus.CounterOpts{
 			Name: fmt.Sprintf("cerbero_service_%v_packets_total", service.Name),
@@ -53,10 +52,10 @@ func GetServiceCounters(service services.Service) serviceCounters {
 	// then "ok" is going to be true and it's going to return it;
 	// else, it's going to create a new entry
 	if !ok {
-		if serviceCountersJob.IsActive() {
-			serviceCountersJob.Wait()
-			return GetServiceCounters(service)
-		}
+		// if serviceCountersJob.IsActive() {
+		// 	serviceCountersJob.Wait()
+		// 	return GetServiceCounters(service)
+		// }
 
 		return createServiceCounters(service)
 	}
@@ -66,7 +65,6 @@ func GetServiceCounters(service services.Service) serviceCounters {
 func createRegexCounter(regex string) prometheus.Counter {
 	regexCountersJob.Add(1)
 
-	// TODO: handle panic from promauto.NewCounter
 	newRegexCounter := promauto.NewCounter(prometheus.CounterOpts{
 		Name: fmt.Sprintf("cerbero_regex_%v_packets_dropped", metricsregex.ToHex(regex)),
 		Help: fmt.Sprintf(`The number of packets that were blocked from regex "%v" (hex).`, metricsregex.ToHex(regex)),

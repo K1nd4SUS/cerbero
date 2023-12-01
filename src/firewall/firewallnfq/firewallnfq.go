@@ -122,6 +122,15 @@ verdictSet:
 }
 
 func handleLogsAndMetricsForPacket(payloadString string, serviceIndex int, isDropped bool, droppedRegex string) {
+	// prometheus might cause a panic; the situation SHOULD
+	// be already handled by the jobs implemented in metricsdb,
+	// but it's always better to have a backup
+	defer func() {
+		if err := recover(); err != nil {
+			logs.PrintError(fmt.Sprintf("Error during metrics update: %v", err))
+		}
+	}()
+
 	metrics.IncrementService(serviceIndex, isDropped)
 	if isDropped {
 		metrics.IncrementRegex(droppedRegex)
