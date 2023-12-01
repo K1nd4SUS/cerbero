@@ -36,7 +36,7 @@ func Load(configurationFile string) error {
 	}
 	logs.PrintDebug(func() string {
 		buffer := &bytes.Buffer{}
-		// TODO: this should have been already parsed by the Unmarshal
+		// this should have been already parsed by the Unmarshal
 		// function, if it outputs an error there's clearly something
 		// wrong with the compiler or something else
 		json.Compact(buffer, b)
