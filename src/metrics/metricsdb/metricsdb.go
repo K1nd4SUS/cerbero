@@ -52,10 +52,10 @@ func GetServiceCounters(service services.Service) serviceCounters {
 	// then "ok" is going to be true and it's going to return it;
 	// else, it's going to create a new entry
 	if !ok {
-		// if serviceCountersJob.IsActive() {
-		// 	serviceCountersJob.Wait()
-		// 	return GetServiceCounters(service)
-		// }
+		if serviceCountersJob.IsActive() {
+			serviceCountersJob.Wait()
+			return GetServiceCounters(service)
+		}
 
 		return createServiceCounters(service)
 	}
