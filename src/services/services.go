@@ -1,13 +1,23 @@
 package services
 
 import (
+	"bufio"
 	"bytes"
 	"cerbero3/logs"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"regexp"
+
+	"github.com/fsnotify/fsnotify"
+)
+
+const (
+	// TODO: edit this value
+	socketInitializedByte = byte(99)
 )
 
 var Services []Service
@@ -21,7 +31,7 @@ type Service struct {
 	Matchers  []*regexp.Regexp
 }
 
-func Load(configurationFile string) error {
+func LoadConfigFile(configurationFile string) error {
 	logs.PrintDebug(fmt.Sprintf(`Reading configuration file from "%v"...`, configurationFile))
 	b, err := os.ReadFile(configurationFile)
 	if err != nil {
@@ -29,8 +39,146 @@ func Load(configurationFile string) error {
 	}
 	logs.PrintDebug(fmt.Sprintf(`Read configuration file from "%v".`, configurationFile))
 
+	if err = LoadJSON(b); err != nil {
+		return err
+	}
+
+	// TODO: add logging
+	if err = watchForConfigFileChanges(configurationFile); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func watchForConfigFileChanges(configurationFile string) error {
+	// TODO: add logging
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+	// do NOT close the watcher at the end of the function,
+	// it has to keep working forever
+	// defer watcher.Close()
+
+	err = watcher.Add(configurationFile)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		// TODO: check if this is correct:
+		// https://github.com/fsnotify/fsnotify
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					// TODO: add logging
+					continue
+				}
+
+				if event.Has(fsnotify.Write) {
+					// TODO: add logging
+					b, err := os.ReadFile(configurationFile)
+					if err != nil {
+						logs.PrintError(err.Error())
+						continue
+					}
+
+					// the file may still be updating so an empty
+					// file is read instead of the actual file.
+					// the actual one will be read in the next
+					// iteration anyways
+					if len(b) == 0 {
+						continue
+					}
+
+					if err = LoadJSON(b); err != nil {
+						logs.PrintError(err.Error())
+						continue
+					}
+				}
+
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					// TODO: add logging
+					// TODO: remove the line below
+					// TODO: recover watcher
+					// strings.Split(err.Error(), "")
+					continue
+				}
+				if err != nil {
+					logs.PrintError(err.Error())
+				}
+			}
+		}
+	}()
+
+	return nil
+}
+
+func LoadCerberoSocket(ip string, port int) error {
+	logs.PrintDebug(fmt.Sprintf(`Connecting to socket at "%v:%v"...`, ip, port))
+	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", ip, port))
+	if err != nil {
+		return err
+	}
+	logs.PrintDebug(fmt.Sprintf(`Connected to socket at "%v:%v".`, ip, port))
+
+	logs.PrintDebug(`Sending first byte to socket...`)
+	// TODO: use a sequence of bytes instead of just one byte
+	conn.Write([]byte{socketInitializedByte})
+
+	logs.PrintDebug("Waiting for the first configuration file from socket...")
+	if err = waitForCerberoSocketJSON(conn, true); err != nil {
+		return err
+	}
+
+	logs.PrintDebug("Starting thread listening for file updates in the background...")
+	go func() {
+		for {
+			if err = waitForCerberoSocketJSON(conn, false); err != nil {
+				logs.PrintError(err.Error())
+			}
+		}
+	}()
+
+	// TODO: reconnect if the connection ends
+
+	return nil
+}
+
+func waitForCerberoSocketJSON(conn net.Conn, firstFile bool) error {
+	reader := bufio.NewReader(conn)
+	b64, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+
+	if firstFile {
+		logs.PrintDebug("Got the first configuration file from socket.")
+	} else {
+		logs.PrintInfo("Got configuration file from socket.")
+	}
+
+	logs.PrintDebug("Decoding the configuration file base64 to normal JSON...")
+	b, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return err
+	}
+	logs.PrintDebug("Decoded the configuration file base64 to normal JSON...")
+
+	err = LoadJSON(b)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func LoadJSON(b []byte) error {
 	logs.PrintDebug("Parsing JSON file...")
-	err = json.Unmarshal(b, &Services)
+	err := json.Unmarshal(b, &Services)
 	if err != nil {
 		return err
 	}

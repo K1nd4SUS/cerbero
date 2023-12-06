@@ -27,7 +27,7 @@ func main() {
 
 	logs.PrintInfo("Loading user flags...")
 	config := configuration.GetFlagsConfiguration()
-	if err = configuration.CheckValues(config); err != nil {
+	if err = configuration.CheckValues(&config); err != nil {
 		logs.PrintCritical(err.Error())
 		os.Exit(1)
 	}
@@ -35,16 +35,26 @@ func main() {
 	// debug logs can be displayed only after this commented line
 	logs.PrintInfo("Loaded user flags.")
 
-	logs.PrintInfo("Loading services configuration...")
-	if err = services.Load(config.ConfigurationFile); err != nil {
-		logs.PrintCritical(err.Error())
+	logs.PrintInfo("Loading services configuration for the first time...")
+	if configuration.IsConfigFileSet(config) {
+		if err = services.LoadConfigFile(config.ConfigurationFile); err != nil {
+			logs.PrintCritical(err.Error())
+			os.Exit(1)
+		}
+	} else if configuration.IsCerberoSocketSet(config) {
+		if err = services.LoadCerberoSocket(config.CerberoSocketIP, config.CerberoSocketPort); err != nil {
+			logs.PrintCritical(err.Error())
+			os.Exit(1)
+		}
+	} else {
+		logs.PrintCritical("Neither a configuration file nor a socket were found.")
 		os.Exit(1)
 	}
 	if err = services.CheckServicesValues(); err != nil {
 		logs.PrintCritical(err.Error())
 		os.Exit(1)
 	}
-	logs.PrintInfo("Loaded services configuration.")
+	logs.PrintInfo("Loaded services configuration for the first time.")
 
 	logs.PrintInfo("Setting firewall rules...")
 	if err = rules.SetRules(config); err != nil {
@@ -65,8 +75,6 @@ func main() {
 	logs.PrintInfo("Started firewall.")
 
 	interrupt.Listen(rr)
-
-	// TODO: create alert for when the config file is edited
 
 	// hang this thread; the program will be closed by other means,
 	// being an os interrupt signal or a crash
