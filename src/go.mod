@@ -4,13 +4,13 @@ go 1.21.4
 
 require (
 	github.com/florianl/go-nfqueue v1.3.1
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/prometheus/client_golang v1.17.0
 )
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/josharian/native v1.0.0 // indirect
