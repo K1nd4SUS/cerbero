@@ -76,8 +76,6 @@ func watchForConfigFileChanges(configurationFile string) error {
 	logs.PrintDebug("Added file to watcher")
 
 	go func() {
-		// TODO: check if this is correct:
-		// https://github.com/fsnotify/fsnotify
 		for {
 			select {
 			case event := <-watcher.Events:
