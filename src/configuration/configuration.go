@@ -58,11 +58,11 @@ func CheckValues(c *Configuration) error {
 
 	ipt, err := iptables.New()
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error while initializing iptables: %v", err.Error()))
+		return errors.New(fmt.Sprintf("Error while initializing iptables: %v.", err.Error()))
 	}
 	doesChainExist, err := ipt.ChainExists("filter", c.Chain)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error while checking if chain exists: %v", err.Error()))
+		return errors.New(fmt.Sprintf("Error while checking if chain exists: %v.", err.Error()))
 	}
 	if !doesChainExist {
 		return errors.New("The given chain does not exist.")

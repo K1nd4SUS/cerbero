@@ -85,7 +85,7 @@ func watchForConfigFileChanges(configurationFile string) error {
 					logs.PrintInfo("Detected configuration file change.")
 					b, err := os.ReadFile(configurationFile)
 					if err != nil {
-						logs.PrintError(fmt.Sprintf("Error while reading the file: %v", err.Error()))
+						logs.PrintError(fmt.Sprintf("Error while reading the file: %v.", err.Error()))
 						continue
 					}
 
@@ -98,13 +98,13 @@ func watchForConfigFileChanges(configurationFile string) error {
 					}
 
 					if err = LoadJSON(b); err != nil {
-						logs.PrintError(fmt.Sprintf("Error while loading JSON file: %v", err.Error()))
+						logs.PrintError(fmt.Sprintf("Error while loading JSON file: %v.", err.Error()))
 					}
 				}
 
 			case err := <-watcher.Errors:
 				if err != nil {
-					logs.PrintError(fmt.Sprintf("Error while watching for file changes: %v", err.Error()))
+					logs.PrintError(fmt.Sprintf("Error while watching for file changes: %v.", err.Error()))
 				}
 			}
 		}
@@ -146,7 +146,7 @@ func LoadCerberoSocket(ip string, port int, attempt int) error {
 					LoadCerberoSocket(ip, port, attempt+1)
 					break
 				}
-				logs.PrintError(fmt.Sprintf("Error while waiting for the next Cerbero socket JSON: %v", err.Error()))
+				logs.PrintError(fmt.Sprintf("Error while waiting for the next Cerbero socket JSON: %v.", err.Error()))
 			}
 		}
 	}()

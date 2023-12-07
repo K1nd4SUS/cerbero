@@ -44,7 +44,7 @@ func StartFirewallForService(rr rules.RemoveRules, serviceIndex int) {
 	err = nfq.RegisterWithErrorFunc(ctx, func(packet nfqueue.Attribute) int {
 		defer func() {
 			if err := recover(); err != nil {
-				logs.PrintError(fmt.Sprintf("%v", err))
+				logs.PrintError(fmt.Sprintf("%v.", err))
 
 				// if handling the packet panics the program, then
 				// we drop it immediately
@@ -56,7 +56,7 @@ func StartFirewallForService(rr rules.RemoveRules, serviceIndex int) {
 	}, func(err error) int {
 		// checks if the error is in the list
 		if skippableErrors[err.Error()] {
-			logs.PrintDebug(fmt.Sprintf("This is a skippable error: %v", err.Error()))
+			logs.PrintDebug(fmt.Sprintf("This is a skippable error: %v.", err.Error()))
 
 			// this is a signal to keep receiving messages:
 			// https://pkg.go.dev/github.com/florianl/go-nfqueue#ErrorFunc
@@ -127,7 +127,7 @@ func handleLogsAndMetricsForPacket(payloadString string, serviceIndex int, isDro
 	// but it's always better to have a backup
 	defer func() {
 		if err := recover(); err != nil {
-			logs.PrintError(fmt.Sprintf("Error during metrics update: %v", err))
+			logs.PrintError(fmt.Sprintf("Error during metrics update: %v.", err))
 		}
 	}()
 
