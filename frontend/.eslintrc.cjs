@@ -1,4 +1,4 @@
-{
+module.exports = {
   "root": true,
   "env": {
     "browser": true,
@@ -6,7 +6,6 @@
   },
   "extends": [
     "eslint:recommended",
-    "plugin:@typescript-eslint/parser",
     "plugin:@typescript-eslint/recommended-type-checked",
     "plugin:react/recommended",
     "plugin:react/jsx-runtime",
@@ -23,7 +22,8 @@
   "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module",
-    "project": ["./tsconfig.json", "./tsconfig.node.json"]
+    "project": ["./tsconfig.json", "./tsconfig.node.json"],
+    "tsconfigRootDir": __dirname
   },
   "plugins": [
     "react-refresh"
