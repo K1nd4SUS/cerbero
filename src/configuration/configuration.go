@@ -3,9 +3,12 @@ package configuration
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/coreos/go-iptables/iptables"
 )
 
 type Configuration struct {
@@ -53,7 +56,17 @@ func CheckValues(c *Configuration) error {
 		return errors.New("Invalid port for metrics, must be a value from 1 to 65535.")
 	}
 
-	// TODO: check if chain exists (?)
+	ipt, err := iptables.New()
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error while initializing iptables: %v", err.Error()))
+	}
+	doesChainExist, err := ipt.ChainExists("filter", c.Chain)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error while checking if chain exists: %v", err.Error()))
+	}
+	if !doesChainExist {
+		return errors.New("The given chain does not exist.")
+	}
 
 	if c.CerberoSocket != "" {
 		cerberoSocketSplit := strings.Split(c.CerberoSocket, ":")

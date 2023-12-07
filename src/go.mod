@@ -3,6 +3,7 @@ module cerbero3
 go 1.21.4
 
 require (
+	github.com/coreos/go-iptables v0.7.0
 	github.com/florianl/go-nfqueue v1.3.1
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/prometheus/client_golang v1.17.0
