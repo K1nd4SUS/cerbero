@@ -40,7 +40,7 @@ func main() {
 	if configuration.IsConfigFileSet(config) {
 		err = services.LoadConfigFile(config.ConfigurationFile)
 	} else if configuration.IsCerberoSocketSet(config) {
-		err = services.LoadCerberoSocket(config.CerberoSocketIP, config.CerberoSocketPort)
+		err = services.LoadCerberoSocket(config.CerberoSocketIP, config.CerberoSocketPort, 0)
 	} else {
 		err = errors.New("Neither a configuration file nor a socket were found.")
 	}

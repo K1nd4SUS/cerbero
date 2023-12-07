@@ -8,9 +8,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"math"
 	"net"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -110,10 +113,18 @@ func watchForConfigFileChanges(configurationFile string) error {
 	return nil
 }
 
-func LoadCerberoSocket(ip string, port int) error {
+func LoadCerberoSocket(ip string, port int, attempt int) error {
 	logs.PrintDebug(fmt.Sprintf(`Connecting to socket at "%v:%v"...`, ip, port))
 	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", ip, port))
 	if err != nil {
+		if attempt > 0 {
+			waitTime := math.Min(float64(attempt)*2, 30)
+			logs.PrintError(fmt.Sprintf("Connection failed. Waiting %v seconds before trying again...", waitTime))
+			time.Sleep(time.Duration(waitTime) * time.Second)
+			logs.PrintInfo("Attempting reconnection...")
+			LoadCerberoSocket(ip, port, attempt+1)
+			return nil
+		}
 		return err
 	}
 	logs.PrintDebug(fmt.Sprintf(`Connected to socket at "%v:%v".`, ip, port))
@@ -130,12 +141,15 @@ func LoadCerberoSocket(ip string, port int) error {
 	go func() {
 		for {
 			if err = waitForCerberoSocketJSON(conn, false); err != nil {
+				if err == io.EOF {
+					logs.PrintInfo("Socket disconnected. Attempting reconnection...")
+					LoadCerberoSocket(ip, port, attempt+1)
+					break
+				}
 				logs.PrintError(fmt.Sprintf("Error while waiting for the next Cerbero socket JSON: %v", err.Error()))
 			}
 		}
 	}()
-
-	// TODO: reconnect if the connection ends
 
 	return nil
 }
