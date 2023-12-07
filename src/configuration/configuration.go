@@ -39,6 +39,7 @@ func GetFlagsConfiguration() Configuration {
 
 func CheckValues(c *Configuration) error {
 	if c.ConfigurationFile == "" && c.CerberoSocket == "" {
+		// TODO: check whether to use --config-file or -config-file
 		return errors.New("You must specify either --config-file or --cerbero-socket.")
 	}
 
