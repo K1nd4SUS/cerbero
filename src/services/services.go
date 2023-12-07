@@ -15,9 +15,12 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-const (
-	// TODO: edit this value
-	socketInitializedByte = byte(99)
+var (
+	// TODO: change this value
+	// the string used by the firewall to communicate
+	// to the Cerbero socket that the socket connection
+	// has been initialized
+	socketInitializedString = ""
 )
 
 var Services []Service
@@ -116,8 +119,7 @@ func LoadCerberoSocket(ip string, port int) error {
 	logs.PrintDebug(fmt.Sprintf(`Connected to socket at "%v:%v".`, ip, port))
 
 	logs.PrintDebug(`Sending first byte to socket...`)
-	// TODO: use a sequence of bytes instead of just one byte
-	conn.Write([]byte{socketInitializedByte})
+	conn.Write([]byte(socketInitializedString))
 
 	logs.PrintDebug("Waiting for the first configuration file from socket...")
 	if err = waitForCerberoSocketJSON(conn, true); err != nil {
