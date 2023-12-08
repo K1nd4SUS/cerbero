@@ -115,6 +115,11 @@ func LoadCerberoSocket(ip string, port int, attempt int) error {
 	logs.PrintDebug(fmt.Sprintf(`Connecting to socket at "%v:%v"...`, ip, port))
 	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", ip, port))
 	if err != nil {
+		// if it's the first time starting the firewall, the attempt
+		// is going to be equal to 0; any other time, it's going to
+		// be greather than 0; we only want to attempt reconnection
+		// if the firewall was already running, not if it was just
+		// started
 		if attempt > 0 {
 			waitTime := math.Min(float64(attempt)*2, 30)
 			logs.PrintError(fmt.Sprintf("Connection failed. Waiting %v seconds before trying again...", waitTime))
