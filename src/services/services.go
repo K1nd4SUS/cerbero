@@ -8,16 +8,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"math"
 	"net"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
 
-const (
-	// TODO: edit this value
-	socketInitializedByte = byte(99)
+var (
+	// TODO: change this value
+	// the string used by the firewall to communicate
+	// to the Cerbero socket that the socket connection
+	// has been initialized
+	socketInitializedString = ""
 )
 
 var Services []Service
@@ -43,7 +49,7 @@ func LoadConfigFile(configurationFile string) error {
 		return err
 	}
 
-	// TODO: add logging
+	logs.PrintDebug("Starting thread listening for file updates in the background...")
 	if err = watchForConfigFileChanges(configurationFile); err != nil {
 		return err
 	}
@@ -52,36 +58,32 @@ func LoadConfigFile(configurationFile string) error {
 }
 
 func watchForConfigFileChanges(configurationFile string) error {
-	// TODO: add logging
+	logs.PrintDebug("Creating file watcher...")
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
+	logs.PrintDebug("Created file watcher.")
 	// do NOT close the watcher at the end of the function,
 	// it has to keep working forever
 	// defer watcher.Close()
 
+	logs.PrintDebug(fmt.Sprintf(`Adding file "%v" to watcher...`, configurationFile))
 	err = watcher.Add(configurationFile)
 	if err != nil {
 		return err
 	}
+	logs.PrintDebug("Added file to watcher")
 
 	go func() {
-		// TODO: check if this is correct:
-		// https://github.com/fsnotify/fsnotify
 		for {
 			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					// TODO: add logging
-					continue
-				}
-
+			case event := <-watcher.Events:
 				if event.Has(fsnotify.Write) {
-					// TODO: add logging
+					logs.PrintInfo("Detected configuration file change.")
 					b, err := os.ReadFile(configurationFile)
 					if err != nil {
-						logs.PrintError(err.Error())
+						logs.PrintError(fmt.Sprintf("Error while reading the file: %v.", err.Error()))
 						continue
 					}
 
@@ -94,21 +96,13 @@ func watchForConfigFileChanges(configurationFile string) error {
 					}
 
 					if err = LoadJSON(b); err != nil {
-						logs.PrintError(err.Error())
-						continue
+						logs.PrintError(fmt.Sprintf("Error while loading JSON file: %v.", err.Error()))
 					}
 				}
 
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					// TODO: add logging
-					// TODO: remove the line below
-					// TODO: recover watcher
-					// strings.Split(err.Error(), "")
-					continue
-				}
+			case err := <-watcher.Errors:
 				if err != nil {
-					logs.PrintError(err.Error())
+					logs.PrintError(fmt.Sprintf("Error while watching for file changes: %v.", err.Error()))
 				}
 			}
 		}
@@ -117,17 +111,24 @@ func watchForConfigFileChanges(configurationFile string) error {
 	return nil
 }
 
-func LoadCerberoSocket(ip string, port int) error {
+func LoadCerberoSocket(ip string, port int, attempt int) error {
 	logs.PrintDebug(fmt.Sprintf(`Connecting to socket at "%v:%v"...`, ip, port))
 	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", ip, port))
 	if err != nil {
+		if attempt > 0 {
+			waitTime := math.Min(float64(attempt)*2, 30)
+			logs.PrintError(fmt.Sprintf("Connection failed. Waiting %v seconds before trying again...", waitTime))
+			time.Sleep(time.Duration(waitTime) * time.Second)
+			logs.PrintInfo("Attempting reconnection...")
+			LoadCerberoSocket(ip, port, attempt+1)
+			return nil
+		}
 		return err
 	}
 	logs.PrintDebug(fmt.Sprintf(`Connected to socket at "%v:%v".`, ip, port))
 
 	logs.PrintDebug(`Sending first byte to socket...`)
-	// TODO: use a sequence of bytes instead of just one byte
-	conn.Write([]byte{socketInitializedByte})
+	conn.Write([]byte(socketInitializedString))
 
 	logs.PrintDebug("Waiting for the first configuration file from socket...")
 	if err = waitForCerberoSocketJSON(conn, true); err != nil {
@@ -138,12 +139,15 @@ func LoadCerberoSocket(ip string, port int) error {
 	go func() {
 		for {
 			if err = waitForCerberoSocketJSON(conn, false); err != nil {
-				logs.PrintError(err.Error())
+				if err == io.EOF {
+					logs.PrintInfo("Socket disconnected. Attempting reconnection...")
+					LoadCerberoSocket(ip, port, attempt+1)
+					break
+				}
+				logs.PrintError(fmt.Sprintf("Error while waiting for the next Cerbero socket JSON: %v.", err.Error()))
 			}
 		}
 	}()
-
-	// TODO: reconnect if the connection ends
 
 	return nil
 }

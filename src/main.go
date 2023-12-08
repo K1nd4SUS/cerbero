@@ -9,6 +9,7 @@ import (
 	"cerbero3/logs"
 	"cerbero3/metrics"
 	"cerbero3/services"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -37,17 +38,14 @@ func main() {
 
 	logs.PrintInfo("Loading services configuration for the first time...")
 	if configuration.IsConfigFileSet(config) {
-		if err = services.LoadConfigFile(config.ConfigurationFile); err != nil {
-			logs.PrintCritical(err.Error())
-			os.Exit(1)
-		}
+		err = services.LoadConfigFile(config.ConfigurationFile)
 	} else if configuration.IsCerberoSocketSet(config) {
-		if err = services.LoadCerberoSocket(config.CerberoSocketIP, config.CerberoSocketPort); err != nil {
-			logs.PrintCritical(err.Error())
-			os.Exit(1)
-		}
+		err = services.LoadCerberoSocket(config.CerberoSocketIP, config.CerberoSocketPort, 0)
 	} else {
-		logs.PrintCritical("Neither a configuration file nor a socket were found.")
+		err = errors.New("Neither a configuration file nor a socket were found.")
+	}
+	if err != nil {
+		logs.PrintCritical(err.Error())
 		os.Exit(1)
 	}
 	if err = services.CheckServicesValues(); err != nil {
