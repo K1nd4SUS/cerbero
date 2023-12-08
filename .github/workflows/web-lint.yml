@@ -1,4 +1,4 @@
-name: lint
+name: web-lint
 
 on: pull_request
 
@@ -12,8 +12,13 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Lint
+      - name: Lint frontend
         run: |
           cd web/frontend/
-          npm i
+          npm ci
+          npm run lint
+      - name: Lint backend
+        run: |
+          cd web/backend/
+          npm ci
           npm run lint
