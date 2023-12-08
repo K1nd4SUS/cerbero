@@ -37,6 +37,7 @@ func main() {
 	logs.PrintInfo("Loaded user flags.")
 
 	logs.PrintInfo("Loading services configuration for the first time...")
+	services.Configure(config)
 	if configuration.IsConfigFileSet(config) {
 		err = services.LoadConfigFile(config.ConfigurationFile)
 	} else if configuration.IsCerberoSocketSet(config) {

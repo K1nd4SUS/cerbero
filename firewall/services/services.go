@@ -3,7 +3,9 @@ package services
 import (
 	"bufio"
 	"bytes"
+	"cerbero3/configuration"
 	"cerbero3/logs"
+	"cerbero3/random"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -18,13 +20,19 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-var (
-	// TODO: change this value
-	// the string used by the firewall to communicate
-	// to the Cerbero socket that the socket connection
-	// has been initialized
-	socketInitializedString = ""
-)
+var socketInitializationString = ""
+
+func Configure(config configuration.Configuration) {
+	if !configuration.IsCerberoSocketSet(config) {
+		return
+	}
+
+	socketInitializationString = random.String(
+		random.LowerAlphabet+random.UpperAlphabet+random.DigitAlphabet+random.SpecialAlphabet,
+		16,
+	)
+	logs.PrintInfo(fmt.Sprintf(`Using the following Cerbero socket initialization string: "%v".`, socketInitializationString))
+}
 
 var Services []Service
 
@@ -133,7 +141,7 @@ func LoadCerberoSocket(ip string, port int, attempt int) error {
 	logs.PrintDebug(fmt.Sprintf(`Connected to socket at "%v:%v".`, ip, port))
 
 	logs.PrintDebug(`Sending first byte to socket...`)
-	conn.Write([]byte(socketInitializedString))
+	conn.Write([]byte(socketInitializationString))
 
 	logs.PrintDebug("Waiting for the first configuration file from socket...")
 	if err = waitForCerberoSocketJSON(conn, true); err != nil {
