@@ -17,6 +17,7 @@ type Configuration struct {
 	CerberoSocket     string
 	CerberoSocketIP   string
 	CerberoSocketPort int
+	ColoredLogs       bool
 	Verbose           bool
 
 	// the max port is 65535, a 16-bit number
@@ -28,6 +29,7 @@ func GetFlagsConfiguration() Configuration {
 	pChain := flag.String("chain", "INPUT", "Input chain name.")
 	pCerberoSocket := flag.String("cerbero-socket", "", "The server to which Cerbero will connect to update the configuration file. The format must be <ip>:<port>.")
 	pMetricsPort := flag.Int("metrics-port", 9090, "Port used for the metrics server.")
+	pColoredLogs := flag.Bool("colored-logs", false, "Enable colors for logs")
 	pVerbose := flag.Bool("v", false, "Enable DEBUG-level logging.")
 	flag.Parse()
 
@@ -36,6 +38,7 @@ func GetFlagsConfiguration() Configuration {
 		Chain:             *pChain,
 		Verbose:           *pVerbose,
 		CerberoSocket:     *pCerberoSocket,
+		ColoredLogs:       *pColoredLogs,
 		MetricsPort:       *pMetricsPort,
 	}
 }

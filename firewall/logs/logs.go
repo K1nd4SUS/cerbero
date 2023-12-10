@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-var (
-	verboseEnabled bool
-)
+var verboseEnabled bool
 
 type coloringFunction func(string) string
 
 func Configure(c configuration.Configuration) {
 	verboseEnabled = c.Verbose
+
+	colors.Configure(c)
 }
 
 func print(message string, cf coloringFunction) {
