@@ -4,7 +4,7 @@ import { z } from "zod"
 dotenv.config()
 
 const env = z.object({
-  SERVER_PORT: z.string()
+  API_PORT: z.string().transform(v => parseInt(v))
 })
 
 env.parse(process.env)

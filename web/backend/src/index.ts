@@ -1,14 +1,18 @@
 import express from "express"
-import "./config/env.ts"
 
-const server = express()
+import "./config/env"
+import "./utils/logs"
 
-server.get("/", (req, res) => {
-  console.log(req)
+import logger from "./middlewares/logger"
 
-  return res.send("The server is up and running.")
+const api = express()
+
+api.use(logger)
+
+api.get("/", (req, res) => {
+  return res.json("The server is up and running.")
 })
 
-server.listen(process.env.SERVER_PORT, () => {
-  console.log(`Server listening on port ${process.env.SERVER_PORT}`)
+api.listen(process.env.API_PORT, () => {
+  console.info(`API listening on port ${process.env.API_PORT}`)
 })
