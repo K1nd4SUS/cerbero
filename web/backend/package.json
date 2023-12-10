@@ -3,8 +3,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --exec ts-node --esm src/index.ts",
-    "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0"
+    "build": "tsc",
+    "dev": "nodemon --experimental-specifier-resolution=node --watch . src/index.ts",
+    "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
+    "start": "node --experimental-specifier-resolution=node dist/index.js"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
