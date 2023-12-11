@@ -32,7 +32,10 @@ func main() {
 		logs.PrintCritical(err.Error())
 		os.Exit(1)
 	}
-	logs.Configure(config)
+	if err = logs.Configure(config); err != nil {
+		logs.PrintCritical(err.Error())
+		os.Exit(1)
+	}
 	// debug logs can be displayed only after this commented line
 	logs.PrintInfo("Loaded user flags.")
 
