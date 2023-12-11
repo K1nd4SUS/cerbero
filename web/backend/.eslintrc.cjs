@@ -26,6 +26,9 @@ module.exports = {
     "no-trailing-spaces": "error",
     "object-curly-spacing": ["error", "always"],
     "arrow-spacing": ["error", { "before": true, "after": true }],
-    "eol-last": 1
+    "eol-last": 1,
+    "@typescript-eslint/no-misused-promises": [2, {
+      "checksVoidReturn": false
+    }]
   }
 }
