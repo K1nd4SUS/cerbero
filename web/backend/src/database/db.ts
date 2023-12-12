@@ -5,7 +5,7 @@ import { createClient, RedisClientType } from "redis"
  * Access the redis client with: Database.getInstance()
  *
  * Example:
- * const redis = Database()
+ * const redis = Database
  *  .getInstance()
  *  .connect()
  */
