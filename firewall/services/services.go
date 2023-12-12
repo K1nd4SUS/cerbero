@@ -41,7 +41,7 @@ type Service struct {
 	Name      string   `json:"name"`
 	Protocol  string   `json:"protocol"`
 	Port      int      `json:"port"`
-	RegexList []string `json:"regex_list"`
+	RegexList []string `json:"regexes"`
 	Matchers  []*regexp.Regexp
 }
 

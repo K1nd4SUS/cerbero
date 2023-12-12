@@ -4,7 +4,7 @@
         "name": "test_service",
         "protocol": "tcp",
         "port": 80,
-        "regex_list": [
+        "regexes": [
             "ciaociao",
             "provaprova",
             "provaaaaaa",
@@ -16,7 +16,7 @@
         "name": "test_service_2",
         "protocol": "tcp",
         "port": 3300,
-        "regex_list": [
+        "regexes": [
             "ciaociao",
             "provaprova"
         ]
@@ -26,7 +26,7 @@
         "name": "test_service_3",
         "protocol": "tcp",
         "port": 81,
-        "regex_list": [
+        "regexes": [
             "ciaociao",
             "provaprova",
             "0"
