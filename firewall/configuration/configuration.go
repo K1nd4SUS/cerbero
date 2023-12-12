@@ -26,6 +26,7 @@ type Configuration struct {
 }
 
 func GetFlagsConfiguration() Configuration {
+	// TODO: migrate to kong (https://github.com/alecthomas/kong)
 	pConfigurationFile := flag.String("config-file", "", "Relative or absolute path to the JSON configuration file.")
 	pChain := flag.String("chain", "INPUT", "Input chain name.")
 	pCerberoSocket := flag.String("cerbero-socket", "", "The server to which Cerbero will connect to update the configuration file. The format must be <ip>:<port>.")
