@@ -1,7 +1,7 @@
 import { Router } from "express"
 import { z } from "zod"
 import { Database } from "../database/db"
-import type { CerberoService, CerberoServiceCreate } from "../types/service"
+import type { CerberoService } from "../types/service"
 
 const servicesRoute = Router()
 
@@ -38,7 +38,7 @@ servicesRoute.post("/", async (req, res) => {
     regexes: z.array(z.string()).optional()
   })
 
-  let typeValidatedBody: CerberoServiceCreate
+  let typeValidatedBody
 
   try {
     typeValidatedBody = bodySchema.parse(req.body)

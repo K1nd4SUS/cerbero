@@ -1,7 +1,6 @@
 import { Router } from "express"
 import { z } from "zod"
 import { Database } from "../database/db"
-import { CerberoServiceCreate } from "../types/service"
 
 const regexesRoute = Router()
 
@@ -43,7 +42,7 @@ regexesRoute.post("/:nfq", async (req, res) => {
     regexes: z.array(z.string())
   })
 
-  let typeValidatedBody: Required<Pick<CerberoServiceCreate, "regexes">>
+  let typeValidatedBody
 
   try {
     typeValidatedBody = bodySchema.parse(req.body)
