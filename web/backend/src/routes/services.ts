@@ -1,11 +1,9 @@
 import { Router } from "express"
 import { z } from "zod"
 import { Database } from "../database/db"
-import type { CerberoServiceCreate } from "../types/service"
+import type { CerberoService, CerberoServiceCreate } from "../types/service"
 
 const servicesRoute = Router()
-
-// TODO: convert nfq and port to numbers (since redis returns everything as a string)
 
 servicesRoute.get("/", async (req, res) => {
   const redis = Database.getInstance()
@@ -16,7 +14,14 @@ servicesRoute.get("/", async (req, res) => {
   for(const serviceKey of servicesKeys) {
     const service = await redis.hGetAll(serviceKey)
 
-    services.push(service)
+    const parsedService: CerberoService = {
+      name: service.name,
+      nfq: parseInt(service.nfq),
+      port: parseInt(service.port),
+      protocol: service.protocol as "tcp" | "udp"
+    }
+
+    services.push(parsedService)
   }
 
   return res.json(services)
@@ -87,8 +92,15 @@ servicesRoute.get("/:nfq", async (req, res) => {
     })
   }
 
+  const parsedService: CerberoService = {
+    name: service.name,
+    nfq: parseInt(service.nfq),
+    port: parseInt(service.port),
+    protocol: service.protocol as "tcp" | "udp"
+  }
+
   return res.json({
-    ...service,
+    ...parsedService,
     regexes: {
       active: activeRegexes,
       inactive: inactiveRegexes
