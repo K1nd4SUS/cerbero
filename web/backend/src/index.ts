@@ -5,6 +5,7 @@ import "./utils/logs"
 
 import { Database } from "./database/db"
 import logger from "./middlewares/logger"
+import regexesRoute from "./routes/regexes"
 import servicesRoute from "./routes/services"
 
 // Instantiate redis connection
@@ -19,8 +20,10 @@ Database
 
 const api = express()
 
+api.use(express.json())
 api.use(logger)
 
+api.use("/api/regexes", regexesRoute)
 api.use("/api/services", servicesRoute)
 
 api.listen(process.env.API_PORT, () => {
