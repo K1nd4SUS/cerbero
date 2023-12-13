@@ -83,4 +83,107 @@ regexesRoute.post("/:nfq", async (req, res) => {
   })
 })
 
+regexesRoute.put("/:nfq", async (req, res) => {
+  const redis = Database.getInstance()
+
+  const { nfq } = req.params
+
+  const querySchema = z.object({
+    reghex: z.string(),
+    state: z.literal("active").or(z.literal("inactive"))
+  })
+
+  const bodySchema = z.object({
+    regex: z.string(),
+    state: z.literal("active").or(z.literal("inactive"))
+  })
+
+  let typeValidatedQuery
+  let typeValidatedBody
+
+  try {
+    typeValidatedQuery = querySchema.parse(req.query)
+    typeValidatedBody = bodySchema.parse(req.body)
+  }
+  catch(e) {
+    return res.status(400).json({
+      error: e
+    })
+  }
+
+  if(!parseInt(nfq)) {
+    return res.status(400).json({
+      error: "The provided nfq id is not a number"
+    })
+  }
+
+  const parsedRegex = Buffer
+    .from(typeValidatedQuery.reghex, "hex")
+    .toString("utf-8")
+    .trim()
+
+  const doesRegexExist = await redis.sIsMember(
+    `regexes:${nfq}:${typeValidatedQuery.state}`,
+    parsedRegex
+  )
+
+  if(!doesRegexExist) {
+    return res.status(400).json({
+      error: "The regex you are trying to edit doesn't exist"
+    })
+  }
+
+  await redis.sRem(`regexes:${nfq}:${typeValidatedQuery.state}`, parsedRegex)
+  await redis.sAdd(`regexes:${nfq}:${typeValidatedBody.state}`, typeValidatedBody.regex)
+
+  return res.json(typeValidatedBody)
+})
+
+regexesRoute.delete("/:nfq", async (req, res) => {
+  const redis = Database.getInstance()
+  const { nfq } = req.params
+
+  const querySchema = z.object({
+    reghex: z.string(),
+    state: z.literal("active").or(z.literal("inactive"))
+  })
+
+  let typeValidatedQuery
+
+  try {
+    typeValidatedQuery = querySchema.parse(req.query)
+  }
+  catch(e) {
+    return res.status(400).json({
+      error: e
+    })
+  }
+
+  if(!parseInt(nfq)) {
+    return res.status(400).json({
+      error: "The provided nfq id is not a number"
+    })
+  }
+
+  const parsedRegex = Buffer
+    .from(typeValidatedQuery.reghex, "hex")
+    .toString("utf-8")
+    .trim()
+
+  const doesRegexExist = await redis.sIsMember(
+    `regexes:${nfq}:${typeValidatedQuery.state}`,
+    parsedRegex
+  )
+
+  if(!doesRegexExist) {
+    return res.status(400).json({
+      error: "The regex you are trying to delete doesn't exist"
+    })
+  }
+
+  await redis.sRem(`regexes:${nfq}:${typeValidatedQuery.state}`, parsedRegex)
+
+  return res.status(204).end()
+})
+
 export default regexesRoute
