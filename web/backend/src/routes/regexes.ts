@@ -15,10 +15,19 @@ regexesRoute.get("/:nfq", async (req, res) => {
     })
   }
 
+  // Check that the service exists before fetching regexes
+  const serviceKeys = await redis.keys(`services:${nfq}`)
+
+  if(!serviceKeys || serviceKeys.length <= 0) {
+    return res.status(400).json({
+      error: "You are trying to fetch regexes of a service that doesn't exist"
+    })
+  }
+
   const activeRegexes = await redis.sMembers(`regexes:${nfq}:active`)
   const inactiveRegexes = await redis.sMembers(`regexes:${nfq}:inactive`)
 
-  return res.status(201).json({
+  return res.json({
     regexes: {
       active: activeRegexes,
       inactive: inactiveRegexes
@@ -48,6 +57,15 @@ regexesRoute.post("/:nfq", async (req, res) => {
   if(!parseInt(nfq)) {
     return res.status(400).json({
       error: "The provided nfq id is not a number"
+    })
+  }
+
+  // Check that the service exists before adding regexes
+  const serviceKeys = await redis.keys(`services:${nfq}`)
+
+  if(!serviceKeys || serviceKeys.length <= 0) {
+    return res.status(400).json({
+      error: "You are trying to add regexes to a service that doesn't exist"
     })
   }
 
