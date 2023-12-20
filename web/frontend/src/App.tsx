@@ -1,21 +1,27 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
-import Home from "./pages/Home"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import Service from "./pages/Service"
+import Services from "./pages/Services"
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* TODO: Add 404 page */}
         <Route
           path="*"
           element={
-            <Home/>
+            <Navigate to="/services"/>
           }
         />
         <Route
-          path="/"
+          path="/services"
           element={
-            <Home/>
+            <Services/>
+          }
+        />
+        <Route
+          path="/services/:nfq"
+          element={
+            <Service/>
           }
         />
       </Routes>
