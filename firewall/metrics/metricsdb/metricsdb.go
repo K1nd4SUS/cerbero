@@ -20,8 +20,9 @@ type serviceCounters struct {
 var servicesDatabase = make(map[string]serviceCounters)
 
 // key is the service name
+// second key is the regex
 // value is the counter(s)
-var regexesDatabase = make(map[string]prometheus.Counter)
+var regexesDatabase = make(map[string]map[string]prometheus.Counter)
 
 var serviceCountersJob = metricsjobs.CreatingCountersJob{}
 var regexCountersJob = metricsjobs.CreatingCountersJob{}
@@ -62,21 +63,30 @@ func GetServiceCounters(service services.Service) serviceCounters {
 	return serviceCounters
 }
 
-func createRegexCounter(regex string) prometheus.Counter {
+func createRegexCounter(service services.Service, regex string) prometheus.Counter {
 	regexCountersJob.Add(1)
 
 	newRegexCounter := promauto.NewCounter(prometheus.CounterOpts{
-		Name: fmt.Sprintf("cerbero_regex_%v_packets_dropped", metricsregex.ToHex(regex)),
+		Name: fmt.Sprintf("cerbero_regex_%v_%v_packets_dropped", service.Name, metricsregex.ToHex(regex)),
 		Help: fmt.Sprintf(`The number of packets that were blocked from regex "%v" (hex).`, metricsregex.ToHex(regex)),
 	})
-	regexesDatabase[regex] = newRegexCounter
+
+	// we made a map of maps, but of course
+	// if we need to assign a value to a second-level
+	// map, we need to make sure that the first-level
+	// map exists first
+	_, ok := regexesDatabase[service.Name]
+	if !ok {
+		regexesDatabase[service.Name] = make(map[string]prometheus.Counter)
+	}
+	regexesDatabase[service.Name][regex] = newRegexCounter
 
 	regexCountersJob.Done()
 	return newRegexCounter
 }
 
-func GetRegexCounter(regex string) prometheus.Counter {
-	regexCounter, ok := regexesDatabase[regex]
+func GetRegexCounter(service services.Service, regex string) prometheus.Counter {
+	regexCounter, ok := regexesDatabase[service.Name][regex]
 
 	// if regex already exists as a key in the servicesDatabase,
 	// then "ok" is going to be true and it's going to return it;
@@ -84,10 +94,10 @@ func GetRegexCounter(regex string) prometheus.Counter {
 	if !ok {
 		if regexCountersJob.IsActive() {
 			regexCountersJob.Wait()
-			return GetRegexCounter(regex)
+			return GetRegexCounter(service, regex)
 		}
 
-		return createRegexCounter(regex)
+		return createRegexCounter(service, regex)
 	}
 	return regexCounter
 }

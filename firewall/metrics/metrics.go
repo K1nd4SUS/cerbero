@@ -29,11 +29,11 @@ func IncrementService(serviceIndex int, dropped bool) {
 	}()))
 }
 
-func IncrementRegex(regex string) {
-	regexCounter := metricsdb.GetRegexCounter(regex)
+func IncrementRegex(serviceIndex int, regex string) {
+	regexCounter := metricsdb.GetRegexCounter(services.Services[serviceIndex], regex)
 	regexCounter.Inc()
 
-	logs.PrintDebug(fmt.Sprintf("Incremented prometheus counter for regex %v (dropped).", metricsregex.ToHex(regex)))
+	logs.PrintDebug(fmt.Sprintf("Incremented prometheus counter for regex %v (dropped) in service %v.", metricsregex.ToHex(regex), services.Services[serviceIndex].Name))
 }
 
 func StartServer(config configuration.Configuration) {

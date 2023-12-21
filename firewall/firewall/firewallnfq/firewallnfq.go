@@ -133,7 +133,7 @@ func handleLogsAndMetricsForPacket(payloadString string, serviceIndex int, isDro
 
 	metrics.IncrementService(serviceIndex, isDropped)
 	if isDropped {
-		metrics.IncrementRegex(droppedRegex)
+		metrics.IncrementRegex(serviceIndex, droppedRegex)
 	}
 	logs.PrintDebug(fmt.Sprintf(`"%v": %v packet %q.`, services.Services[serviceIndex].Name, func() string {
 		if !isDropped {
