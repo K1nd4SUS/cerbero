@@ -7,6 +7,7 @@ import { Database } from "./database/db"
 import logger from "./middlewares/logger"
 import regexesRoute from "./routes/regexes"
 import servicesRoute from "./routes/services"
+import setupRoute from "./routes/setup"
 
 // Instantiate redis connection
 Database
@@ -25,6 +26,7 @@ api.use(logger)
 
 api.use("/api/regexes", regexesRoute)
 api.use("/api/services", servicesRoute)
+api.use("/api/setup", setupRoute)
 
 api.listen(process.env.API_PORT, () => {
   console.info(`API listening on port ${process.env.API_PORT}`)

@@ -1,10 +1,11 @@
 import { Router } from "express"
 import { z } from "zod"
 import { Database } from "../database/db"
+import setupMiddleware from "../middlewares/setup"
 
 const regexesRoute = Router()
 
-regexesRoute.get("/:nfq", async (req, res) => {
+regexesRoute.get("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
   const { nfq } = req.params
 
@@ -34,7 +35,7 @@ regexesRoute.get("/:nfq", async (req, res) => {
   })
 })
 
-regexesRoute.post("/:nfq", async (req, res) => {
+regexesRoute.post("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
   const { nfq } = req.params
 
@@ -82,7 +83,7 @@ regexesRoute.post("/:nfq", async (req, res) => {
   })
 })
 
-regexesRoute.put("/:nfq", async (req, res) => {
+regexesRoute.put("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
 
   const { nfq } = req.params
@@ -138,7 +139,7 @@ regexesRoute.put("/:nfq", async (req, res) => {
   return res.json(typeValidatedBody)
 })
 
-regexesRoute.delete("/:nfq", async (req, res) => {
+regexesRoute.delete("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
   const { nfq } = req.params
 

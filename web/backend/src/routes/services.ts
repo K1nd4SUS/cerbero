@@ -1,11 +1,12 @@
 import { Router } from "express"
 import { z } from "zod"
 import { Database } from "../database/db"
+import setupMiddleware from "../middlewares/setup"
 import type { CerberoService } from "../types/service"
 
 const servicesRoute = Router()
 
-servicesRoute.get("/", async (req, res) => {
+servicesRoute.get("/", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
 
   const servicesKeys = await redis.keys("services:*")
@@ -30,13 +31,22 @@ servicesRoute.get("/", async (req, res) => {
 servicesRoute.post("/", async (req, res) => {
   const redis = Database.getInstance()
 
-  const bodySchema = z.object({
+  // Check if cerbero has already been setup
+  const servicesKeys = await redis.keys("services:*")
+
+  if(servicesKeys.length > 0) {
+    return res.status(400).json({
+      error: "Cerbero has already been setup"
+    })
+  }
+
+  const bodySchema = z.array(z.object({
     name: z.string(),
     nfq: z.number(),
     port: z.number(),
     protocol: z.literal("tcp").or(z.literal("udp")),
     regexes: z.array(z.string()).optional()
-  })
+  }))
 
   let typeValidatedBody
 
@@ -49,30 +59,28 @@ servicesRoute.post("/", async (req, res) => {
     })
   }
 
-  // The service was created with default regexes
-  if(typeValidatedBody.regexes && typeValidatedBody.regexes.length > 0) {
-    await redis.sAdd(`regexes:${typeValidatedBody.nfq}:active`, typeValidatedBody.regexes)
-  }
+  for(const service of typeValidatedBody) {
+    // The service was created with default regexes
+    if(service.regexes && service.regexes.length > 0) {
+      await redis.sAdd(`regexes:${service.nfq}:active`, service.regexes)
+    }
 
-  const newService = {
-    name: typeValidatedBody.name,
-    nfq: typeValidatedBody.nfq,
-    port: typeValidatedBody.port,
-    protocol: typeValidatedBody.protocol
-  }
+    const newService = {
+      name: service.name,
+      nfq: service.nfq,
+      port: service.port,
+      protocol: service.protocol
+    }
 
-  await redis.hSet(`services:${typeValidatedBody.nfq}`, newService)
+    await redis.hSet(`services:${service.nfq}`, newService)
+  }
 
   return res.status(201).json({
-    ...newService,
-    regexes: {
-      active: typeValidatedBody.regexes,
-      inactive: []
-    }
+    isSetupDone: true
   })
 })
 
-servicesRoute.get("/:nfq", async (req, res) => {
+servicesRoute.get("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
   const { nfq } = req.params
 
