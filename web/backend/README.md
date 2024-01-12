@@ -30,6 +30,8 @@
 
 > To setup a development server run the following commands:
 
+I highly suggest to use node version `18.17.x`, you can quickly swap between node versions with [`nvm`](https://github.com/nvm-sh/nvm) (node version manager).
+
 Install all the required `node_modules`:
 
 ```sh
