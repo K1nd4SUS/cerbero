@@ -1,5 +1,4 @@
 import { ReactNode } from "react"
-import backgroundImg from "../assets/images/background.png"
 
 export type PageProps = {
   children: ReactNode
@@ -7,7 +6,7 @@ export type PageProps = {
 
 export default function Page({ children }: PageProps) {
   return (
-    <div style={{ backgroundImage: `url(${backgroundImg})` }} className="absolute h-full w-full flex flex-col bg-cover">
+    <div className="absolute h-full w-full flex flex-col bg-default-50">
       {children}
     </div>
   )

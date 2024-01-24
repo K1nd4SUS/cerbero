@@ -20,7 +20,7 @@ export default function Service({ name, nfq, port, protocol }: ServiceProps) {
 
   return (
     <div onClick={() => navigate(`/services/${nfq}`)}>
-      <Card key={nfq} className="h-full w-full bg-kinda-secondary text-zinc-300 hover:scale-[102.5%] hover:cursor-pointer">
+      <Card key={nfq} className="h-full w-full text-zinc-300 hover:scale-[102.5%] hover:cursor-pointer">
         <CardHeader className="w-full flex items-center">
           <div className="flex flex-col gap-1 px-2">
             <span className="flex items-center gap-2">
@@ -35,7 +35,7 @@ export default function Service({ name, nfq, port, protocol }: ServiceProps) {
             </Chip>
           </div>
         </CardHeader>
-        <Divider className="bg-zinc-700"/>
+        <Divider/>
         <CardBody>
           <div className="h-full flex items-center justify-evenly">
             <Skeleton isLoaded={!isLoading} className="rounded-lg">

@@ -49,13 +49,13 @@ export default function Service() {
           <div className="h-full flex flex-col gap-4 p-4 md:flex-row">
             <div className="flex-1 flex flex-col gap-4 p-4">
               <span className="font-bold text-3xl text-zinc-300">Metrics</span>
-              <div className="h-full w-full flex flex-col items-center justify-center bg-kinda-secondary rounded-xl">
+              <div className="h-full w-full flex flex-col items-center justify-center bg-default-100 rounded-xl">
                 <span className="font-thin text-xl italic">Placeholder</span>
               </div>
             </div>
             <div className="flex-1 flex flex-col gap-4 p-4">
               <span className="font-bold text-3xl text-zinc-300">Regexes</span>
-              <div className="h-full w-full flex flex-col items-center justify-center bg-kinda-secondary rounded-xl">
+              <div className="h-full w-full flex flex-col items-center justify-center bg-default-100 rounded-xl">
                 <span className="font-thin text-xl italic">Placeholder</span>
               </div>
             </div>
