@@ -1,13 +1,13 @@
-import cerberoGif from "../assets/images/cerbero.gif"
+import cerberoPng from "../assets/images/cerbero.png"
 
 export default function Header() {
   return (
-    <header className="w-full flex items-center justify-center p-2 bg-kinda-primary shadow-2xl">
+    <header className="w-full flex items-center justify-center p-4 bg-default-50 shadow-2xl">
       <a href="/services">
         <img
-          src={cerberoGif}
+          src={cerberoPng}
           alt="cerbero"
-          className="h-12"
+          className="h-8"
         />
       </a>
     </header>
