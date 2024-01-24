@@ -43,7 +43,7 @@ export default function Service() {
                   <span className="font-bold">{service?.protocol}://vm:{service?.port}</span>
                 </Chip>
               </div>
-              <span className="font-thin text-3xl text-zinc-300">nfq:{service?.nfq}</span>
+              <span className="font-mono text-3xl text-zinc-300">nfq:{service?.nfq}</span>
             </div>
           </div>
           <div className="h-full flex flex-col gap-4 p-4 md:flex-row">
