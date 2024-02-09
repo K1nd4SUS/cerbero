@@ -6,6 +6,24 @@ import type { CerberoService } from "../types/service"
 
 const servicesRoute = Router()
 
+/**
+ * @swagger
+ * /api/services:
+ *  get:
+ *    tags:
+ *      - Services
+ *    summary: Get all the registered services
+ *    description: Get all the registered services
+ *    responses:
+ *      200:
+ *        description: All the services were successfully returned
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: array
+ *              items:
+ *                $ref: '#/components/schemas/CerberoService'
+ */
 servicesRoute.get("/", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
 
@@ -28,6 +46,38 @@ servicesRoute.get("/", setupMiddleware, async (req, res) => {
   return res.json(services)
 })
 
+/**
+ * @swagger
+ * /api/services:
+ *  post:
+ *    tags:
+ *      - Services
+ *    summary: Create 1 or more services
+ *    description: Create 1 or more services
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            type: array
+ *            items:
+ *              $ref: '#/components/schemas/CerberoService'
+ *    responses:
+ *      201:
+ *        description: Cerbero is now ready to be used
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/CerberoSetupResponse'
+ *      400:
+ *        description: Cerbero has already been setup
+ *        content:
+ *          application/json:
+ *            schema:
+ *              oneOf:
+ *                - $ref: '#/components/schemas/ErrorString'
+ *                - $ref: '#/components/schemas/ErrorObject'
+ */
 servicesRoute.post("/", async (req, res) => {
   const redis = Database.getInstance()
 
@@ -80,6 +130,33 @@ servicesRoute.post("/", async (req, res) => {
   })
 })
 
+/**
+ * @swagger
+ * /api/services/{nfq}:
+ *  get:
+ *    tags:
+ *      - Services
+ *    summary: Get a service by its nfq id
+ *    description: Get a service by its nfq id
+ *    parameters:
+ *      - $ref: '#/components/parameters/nfq'
+ *    responses:
+ *      200:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/CerberoService'
+ *      400:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/ErrorString'
+ *      404:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/ErrorString'
+ */
 servicesRoute.get("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
   const { nfq } = req.params
