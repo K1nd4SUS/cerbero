@@ -5,6 +5,26 @@ import setupMiddleware from "../middlewares/setup"
 
 const regexesRoute = Router()
 
+/**
+ * @swagger
+ * /api/regexes/{nfq}:
+ *  get:
+ *    tags:
+ *      - Regexes
+ *    summary: Get all the regexes of a service (by its nfq id)
+ *    description: Get all the regexes of a service (by its nfq id)
+ *    parameters:
+ *      - $ref: '#/components/parameters/nfq'
+ *    responses:
+ *      200:
+ *        description: The regexes were returned successfully
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/CerberoRegexes'
+ *      400:
+ *        $ref: '#/components/responses/BadRequest'
+ */
 regexesRoute.get("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
   const { nfq } = req.params
@@ -35,6 +55,32 @@ regexesRoute.get("/:nfq", setupMiddleware, async (req, res) => {
   })
 })
 
+/**
+ * @swagger
+ * /api/regexes/{nfq}:
+ *  post:
+ *    tags:
+ *      - Regexes
+ *    summary: Add regexes to a service (by its nfq id)
+ *    description: Add regexes to a service (by its nfq id)
+ *    parameters:
+ *      - $ref: '#/components/parameters/nfq'
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/Regexes'
+ *    responses:
+ *      201:
+ *        description: The regexes were added successfully
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/CerberoRegexes'
+ *      400:
+ *        $ref: '#/components/responses/BadRequest'
+ */
 regexesRoute.post("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
   const { nfq } = req.params
@@ -83,6 +129,31 @@ regexesRoute.post("/:nfq", setupMiddleware, async (req, res) => {
   })
 })
 
+/**
+ * @swagger
+ * /api/regexes/{nfq}:
+ *  put:
+ *    tags:
+ *      - Regexes
+ *    summary: Modify the state of a regex (active/inactive)
+ *    description: Modify the state of a regex (active/inactive)
+ *    parameters:
+ *      - $ref: '#/components/parameters/nfq'
+ *      - $ref: '#/components/parameters/reghex'
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/PutRegex'
+ *    responses:
+ *      200:
+ *        description: The regex was modified successfully
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/PutRegex'
+ */
 regexesRoute.put("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
 
@@ -139,6 +210,22 @@ regexesRoute.put("/:nfq", setupMiddleware, async (req, res) => {
   return res.json(typeValidatedBody)
 })
 
+/**
+ * @swagger
+ * /api/regexes/{nfq}:
+ *  delete:
+ *    tags:
+ *      - Regexes
+ *    summary: Delete a regex
+ *    description: Delete a regex
+ *    parameters:
+ *      - $ref: '#/components/parameters/nfq'
+ *    responses:
+ *      204:
+ *        description: The regex was deleted successfully
+ *      400:
+ *        $ref: '#/components/responses/BadRequest'
+ */
 regexesRoute.delete("/:nfq", setupMiddleware, async (req, res) => {
   const redis = Database.getInstance()
   const { nfq } = req.params

@@ -1,4 +1,5 @@
 import express from "express"
+import swaggerUi from "swagger-ui-express"
 
 import "./config/env"
 import "./utils/logs"
@@ -8,6 +9,16 @@ import logger from "./middlewares/logger"
 import regexesRoute from "./routes/regexes"
 import servicesRoute from "./routes/services"
 import setupRoute from "./routes/setup"
+import swaggerRoute from "./routes/swagger"
+
+/**
+ * @swagger
+ * tags:
+ *  - name: Regexes
+ *  - name: Services
+ *  - name: Setup
+ *  - name: Swagger
+ */
 
 // Instantiate redis connection
 Database
@@ -27,6 +38,8 @@ api.use(logger)
 api.use("/api/regexes", regexesRoute)
 api.use("/api/services", servicesRoute)
 api.use("/api/setup", setupRoute)
+api.use("/api/swagger", swaggerUi.serve)
+api.use("/api/swagger", swaggerRoute)
 
 api.listen(process.env.API_PORT, () => {
   console.info(`API listening on port ${process.env.API_PORT}`)
