@@ -1,9 +1,0 @@
-version: '3.7'
-services:
-  app:
-    build: .
-    restart: always
-    environment:
-      - VULNBOX_IP=192.168.1.204
-    ports:
-      - 51645:5000
