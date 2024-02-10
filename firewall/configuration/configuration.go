@@ -3,17 +3,13 @@ package configuration
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/coreos/go-iptables/iptables"
 )
 
 type Configuration struct {
 	ConfigurationFile string
-	Chain             string
 	CerberoSocket     string
 	CerberoSocketIP   string
 	CerberoSocketPort int
@@ -28,7 +24,6 @@ type Configuration struct {
 func GetFlagsConfiguration() Configuration {
 	// TODO: migrate to kong (https://github.com/alecthomas/kong)
 	pConfigurationFile := flag.String("config-file", "", "Relative or absolute path to the JSON configuration file.")
-	pChain := flag.String("chain", "INPUT", "Input chain name.")
 	pCerberoSocket := flag.String("cerbero-socket", "", "The server to which Cerbero will connect to update the configuration file. The format must be <ip>:<port>.")
 	pMetricsPort := flag.Int("metrics-port", 9090, "Port used for the metrics server.")
 	pColoredLogs := flag.Bool("colored-logs", false, "Enable colors for logs. They will not appear in the logfile.")
@@ -38,7 +33,6 @@ func GetFlagsConfiguration() Configuration {
 
 	return Configuration{
 		ConfigurationFile: *pConfigurationFile,
-		Chain:             *pChain,
 		Verbose:           *pVerbose,
 		CerberoSocket:     *pCerberoSocket,
 		ColoredLogs:       *pColoredLogs,
@@ -60,18 +54,6 @@ func CheckValues(c *Configuration) error {
 
 	if !(1 <= c.MetricsPort && c.MetricsPort <= 65535) {
 		return errors.New("Invalid port for metrics, must be a value from 1 to 65535.")
-	}
-
-	ipt, err := iptables.New()
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error while initializing iptables: %v.", err.Error()))
-	}
-	doesChainExist, err := ipt.ChainExists("filter", c.Chain)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Error while checking if chain exists: %v.", err.Error()))
-	}
-	if !doesChainExist {
-		return errors.New("The given chain does not exist.")
 	}
 
 	if c.CerberoSocket != "" {

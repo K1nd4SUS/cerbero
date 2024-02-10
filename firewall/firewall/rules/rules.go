@@ -21,7 +21,7 @@ func getIPTablesCommand(config configuration.Configuration, service services.Ser
 			} else {
 				return "D"
 			}
-		}()), config.Chain,
+		}()), service.Chain,
 		"-p", service.Protocol,
 		"--dport", fmt.Sprintf("%v", service.Port),
 		"-j", "NFQUEUE",

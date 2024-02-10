@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/coreos/go-iptables/iptables"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -41,6 +42,7 @@ type Service struct {
 	Name      string   `json:"name"`
 	Protocol  string   `json:"protocol"`
 	Port      int      `json:"port"`
+	Chain     string   `json:"chain"`
 	RegexList []string `json:"regexes"`
 	Matchers  []*regexp.Regexp
 }
@@ -215,6 +217,13 @@ func LoadJSON(b []byte) error {
 }
 
 func CheckServicesValues() error {
+	// we initialize iptables in order to not initialize
+	// it multiple times in the loop
+	ipt, err := iptables.New()
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error while initializing iptables: %v.", err.Error()))
+	}
+
 	for _, service := range Services {
 		if !(1 <= service.Nfq && service.Nfq <= 65535) {
 			return errors.New(fmt.Sprintf(`Invalid nfq for service %v, must be a value from 1 to 65535.`, service.Name))
@@ -226,6 +235,14 @@ func CheckServicesValues() error {
 
 		if !(1 <= service.Port && service.Port <= 65535) {
 			return errors.New(fmt.Sprintf(`Invalid port for service %v, must be a value from 1 to 65535.`, service.Name))
+		}
+
+		doesChainExist, err := ipt.ChainExists("filter", service.Chain)
+		if err != nil {
+			return errors.New(fmt.Sprintf("Error while checking if chain exists: %v.", err.Error()))
+		}
+		if !doesChainExist {
+			return errors.New(fmt.Sprintf("The given chain does not exist: %v.", service.Chain))
 		}
 	}
 

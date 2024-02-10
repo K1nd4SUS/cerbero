@@ -4,6 +4,7 @@
         "name": "test_service",
         "protocol": "tcp",
         "port": 80,
+        "chain": "OUTPUT",
         "regexes": [
             "ciaociao",
             "provaprova",
@@ -16,6 +17,7 @@
         "name": "test_service_2",
         "protocol": "tcp",
         "port": 3300,
+        "chain": "INPUT",
         "regexes": [
             "ciaociao",
             "provaprova"
@@ -26,6 +28,7 @@
         "name": "test_service_3",
         "protocol": "tcp",
         "port": 81,
+        "chain": "DOCKER-USER",
         "regexes": [
             "ciaociao",
             "provaprova",
