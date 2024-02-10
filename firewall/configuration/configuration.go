@@ -1,8 +1,8 @@
 package configuration
 
 import (
+	"cerbero3/configuration/cli"
 	"errors"
-	"flag"
 	"os"
 	"strconv"
 	"strings"
@@ -22,28 +22,20 @@ type Configuration struct {
 }
 
 func GetFlagsConfiguration() Configuration {
-	// TODO: migrate to kong (https://github.com/alecthomas/kong)
-	pConfigurationFile := flag.String("config-file", "", "Relative or absolute path to the JSON configuration file.")
-	pCerberoSocket := flag.String("cerbero-socket", "", "The server to which Cerbero will connect to update the configuration file. The format must be <ip>:<port>.")
-	pMetricsPort := flag.Int("metrics-port", 9090, "Port used for the metrics server.")
-	pColoredLogs := flag.Bool("colored-logs", false, "Enable colors for logs. They will not appear in the logfile.")
-	pLogFile := flag.String("log-file", "/var/log/cerbero/status.log", "File used to output logs.")
-	pVerbose := flag.Bool("v", false, "Enable DEBUG-level logging.")
-	flag.Parse()
-
+	structure := cli.Parse()
 	return Configuration{
-		ConfigurationFile: *pConfigurationFile,
-		Verbose:           *pVerbose,
-		CerberoSocket:     *pCerberoSocket,
-		ColoredLogs:       *pColoredLogs,
-		LogFile:           *pLogFile,
-		MetricsPort:       *pMetricsPort,
+		ConfigurationFile: structure.File.FilePath,
+		Verbose:           structure.Verbose,
+		CerberoSocket:     structure.Socket.Address,
+		ColoredLogs:       structure.ColoredLogs,
+		LogFile:           structure.LogFile,
+		MetricsPort:       structure.MetricsPort,
 	}
 }
 
 func CheckValues(c *Configuration) error {
 	if c.ConfigurationFile == "" && c.CerberoSocket == "" {
-		return errors.New("You must specify either -config-file or -cerbero-socket.")
+		return errors.New("You must specify either file or socket.")
 	}
 
 	if c.ConfigurationFile != "" {
