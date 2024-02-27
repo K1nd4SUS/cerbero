@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import Home from "./pages/Home"
 import Service from "./pages/Service"
 import Services from "./pages/Services"
 
@@ -9,7 +10,13 @@ export default function App() {
         <Route
           path="*"
           element={
-            <Navigate to="/services"/>
+            <Navigate to="/"/>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <Home/>
           }
         />
         <Route
