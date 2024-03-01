@@ -9,4 +9,11 @@ export type CerberoService = {
   }
 }
 
+export type CerberoServiceInput = {
+  name: string
+  nfq: string
+  port: string
+  protocol: "tcp" | "udp"
+}
+
 export type CerberoRegexes = Required<Pick<CerberoService, "regexes">>
