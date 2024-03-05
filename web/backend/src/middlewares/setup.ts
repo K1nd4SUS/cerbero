@@ -18,7 +18,7 @@ export default async function setupMiddleware(
     next()
   }
   else {
-    return res.status(403).json({
+    return res.status(404).json({
       error: "Cerbero has not been setup"
     })
   }
