@@ -1,18 +1,58 @@
-import { Button, Spinner, Tab, Tabs, Tooltip } from "@nextui-org/react"
-import { FaPen, FaTrash, FaArrowLeft, FaArrowRight } from "react-icons/fa6"
-import { useFetchSync } from "../hooks/useFetch"
+import { Button, Input, Spinner, Tab, Tabs, Tooltip } from "@nextui-org/react"
+import { useEffect, useState } from "react"
+import { FaArrowLeft, FaArrowRight, FaCircleCheck, FaPen, FaTrash } from "react-icons/fa6"
+import { useFetch, useFetchSync } from "../hooks/useFetch"
 import { CerberoRegexes } from "../types/cerbero"
 
 export type ServiceRegexesListProps = {
   nfq: string
 }
 
+type NewRegexResponse = {
+  regexes: {
+    active: string[]
+    inactive: string[]
+  }
+}
+
 export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
   const [
     response,
+    fetchRegexes,
     isLoading,
     error
-  ] = useFetchSync<CerberoRegexes>(`/api/regexes/${nfq}`)
+  ] = useFetch<CerberoRegexes>()
+
+  const [newRegex, setNewRegex] = useState("")
+
+  const [
+    ,
+    newRegexFetch,
+    isNewRegexLoading,
+  ] = useFetch<NewRegexResponse>()
+
+  useEffect(() => {
+    fetchRegexes(`/api/regexes/${nfq}`)
+  }, [])
+
+  async function addNewRegex() {
+    if(!newRegex) {
+      return
+    }
+
+    await newRegexFetch(`/api/regexes/${nfq}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        regexes: [newRegex]
+      })
+    })
+
+    setNewRegex("")
+    fetchRegexes(`/api/regexes/${nfq}`)
+  }
 
   if(isLoading) {
     return (
@@ -33,10 +73,23 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
 
   return (
     <Tabs aria-label="Options">
-      <Tab key="active" title="Active" className="flex flex-col h-full">
+      <Tab key="active" title="Active" className="h-full flex flex-col gap-2">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-default-200">
+          <Input
+            placeholder="New regex"
+            type="text"
+            variant="flat"
+            value={newRegex}
+            onChange={({ target }) => setNewRegex(target.value)}
+            className="bg-transparent"
+          />
+          <Button isLoading={isNewRegexLoading} variant="flat" color="success" onPress={addNewRegex}>
+            <span className="font-bold">Add regex</span>
+          </Button>
+        </div>
         {response?.regexes.active.length === 0 ?
           <div className="h-full w-full flex flex-col items-center justify-center">
-            <span className="font-bold text-zinc-600">No regexes here, cerbero went to bed...</span>
+            <span className="font-bold text-zinc-600">No regexes here, add one from the input field above!</span>
           </div> :
           <ul className="h-full w-full flex flex-col gap-1">
             {response?.regexes.active.map((regex, i) => {
@@ -45,7 +98,7 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <span className="h-2 w-2 rounded-full bg-success"></span>
-                      <span className="font-mono">{regex}</span>
+                      <span className="font-mono overflow-hidden line-clamp-1">{regex}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Tooltip content="Edit regex" delay={1000} size="sm">
@@ -73,7 +126,7 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
       <Tab key="inactive" title="Inactive" className="flex flex-col h-full">
         {response?.regexes.inactive.length === 0 ?
           <div className="h-full w-full flex flex-col items-center justify-center">
-            <span className="font-bold text-zinc-600">No regexes here, cerbero went to bed...</span>
+            <span className="font-bold text-zinc-600">No regexes here, deactivate one from the `Active` tab.</span>
           </div> :
           <ul className="h-full w-full flex flex-col gap-1">
             {response?.regexes.inactive.map((regex, i) => {

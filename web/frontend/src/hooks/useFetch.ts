@@ -18,9 +18,9 @@ export type UseFetchError = {
  * 2. A `boolean` flag that states if the request is loading.
  * 3. In case of an error a `UseFetchError` object, otherwise `undefined`.
  */
-export function useFetch<T>(url: string, init?: RequestInit): [
+export function useFetch<T>(): [
   T | undefined,
-  () => Promise<void>,
+  (url: string, init?: RequestInit) => Promise<void>,
   boolean,
   UseFetchError | undefined
 ] {
@@ -28,7 +28,7 @@ export function useFetch<T>(url: string, init?: RequestInit): [
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<UseFetchError>()
 
-  async function triggerFetch() {
+  async function triggerFetch(url: string, init?: RequestInit) {
     setIsLoading(true)
 
     const response = await fetch(url, init)
@@ -76,10 +76,10 @@ export function useFetchSync<T>(url: string, init?: RequestInit): [
     triggerFetch,
     isLoading,
     error
-  ] = useFetch<T>(url, init)
+  ] = useFetch<T>()
 
   useEffect(() => {
-    void triggerFetch()
+    void triggerFetch(url, init)
   }, [])
 
   return [
