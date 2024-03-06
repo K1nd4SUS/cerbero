@@ -1,6 +1,7 @@
-import { Chip } from "@nextui-org/react"
+import { Card, CardBody, Chip } from "@nextui-org/react"
 import { useParams } from "react-router-dom"
 import Header from "../components/Header"
+import ServiceRegexesList from "../components/ServiceRegexesList"
 import { useFetchSync } from "../hooks/useFetch"
 import Main from "../layouts/Main"
 import Page from "../layouts/Page"
@@ -55,9 +56,11 @@ export default function Service() {
             </div>
             <div className="flex-1 flex flex-col gap-4 p-4">
               <span className="font-bold text-3xl text-zinc-300">Regexes</span>
-              <div className="h-full w-full flex flex-col items-center justify-center bg-default-100 rounded-xl">
-                <span className="font-thin text-xl italic">Placeholder</span>
-              </div>
+              <Card className="h-full bg-default-100">
+                <CardBody>
+                  <ServiceRegexesList nfq={nfq}/>
+                </CardBody>
+              </Card>
             </div>
           </div>
         </div>
