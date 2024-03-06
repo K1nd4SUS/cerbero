@@ -38,7 +38,7 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
   ] = useFetch()
 
   useEffect(() => {
-    regexesFetch(`/api/regexes/${nfq}`)
+    void regexesFetch(`/api/regexes/${nfq}`)
   }, [])
 
   async function addNewRegex() {
@@ -57,7 +57,7 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
     })
 
     setNewRegex("")
-    regexesFetch(`/api/regexes/${nfq}`)
+    void regexesFetch(`/api/regexes/${nfq}`)
   }
 
   async function editRegex(regex: string, currentState: "active" | "inactive", newRegex: string, newState: "active" | "inactive") {
@@ -74,7 +74,7 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
       })
     })
 
-    regexesFetch(`/api/regexes/${nfq}`)
+    void regexesFetch(`/api/regexes/${nfq}`)
   }
 
   async function deleteRegex(regex: string, state: "active" | "inactive") {
@@ -84,7 +84,7 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
       method: "DELETE"
     })
 
-    regexesFetch(`/api/regexes/${nfq}`)
+    void regexesFetch(`/api/regexes/${nfq}`)
   }
 
   if(isRegexesLoading) {
@@ -116,7 +116,7 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
             onChange={({ target }) => setNewRegex(target.value)}
             className="bg-transparent"
           />
-          <Button isLoading={isNewRegexLoading} variant="flat" color="success" onPress={addNewRegex}>
+          <Button isLoading={isNewRegexLoading} variant="flat" color="success" onPress={() => void addNewRegex()}>
             <span className="font-bold">Add regex</span>
           </Button>
         </div>
@@ -135,12 +135,12 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
                     </div>
                     <div className="flex items-center gap-1">
                       <Tooltip content="Deactivate regex" delay={1000} size="sm">
-                        <Button isLoading={isEditRegexFetchLoading} onPress={() => editRegex(regex, "active", regex, "inactive")} isIconOnly={true} color="danger" variant="flat" size="sm">
+                        <Button isLoading={isEditRegexFetchLoading} onPress={() => void editRegex(regex, "active", regex, "inactive")} isIconOnly={true} color="danger" variant="flat" size="sm">
                           <FaArrowRight/>
                         </Button>
                       </Tooltip>
                       <Tooltip content="Delete regex" delay={1000} size="sm">
-                        <Button isLoading={isDeleteRegexLoading} onPress={() => deleteRegex(regex, "active")} isIconOnly={true} color="danger" variant="flat" size="sm">
+                        <Button isLoading={isDeleteRegexLoading} onPress={() => void deleteRegex(regex, "active")} isIconOnly={true} color="danger" variant="flat" size="sm">
                           <FaTrash/>
                         </Button>
                       </Tooltip>
@@ -167,12 +167,12 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
                     </div>
                     <div className="flex items-center gap-1">
                       <Tooltip content="Activate regex" delay={1000} size="sm">
-                        <Button isLoading={isEditRegexFetchLoading} onPress={() => editRegex(regex, "inactive", regex, "active")} isIconOnly={true} color="success" variant="flat" size="sm">
+                        <Button isLoading={isEditRegexFetchLoading} onPress={() => void editRegex(regex, "inactive", regex, "active")} isIconOnly={true} color="success" variant="flat" size="sm">
                           <FaArrowLeft/>
                         </Button>
                       </Tooltip>
                       <Tooltip content="Delete regex" delay={1000} size="sm">
-                        <Button onPress={() => deleteRegex(regex, "inactive")} isIconOnly={true} color="danger" variant="flat" size="sm">
+                        <Button onPress={() => void deleteRegex(regex, "inactive")} isIconOnly={true} color="danger" variant="flat" size="sm">
                           <FaTrash/>
                         </Button>
                       </Tooltip>

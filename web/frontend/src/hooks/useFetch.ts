@@ -23,7 +23,7 @@ export function useFetch<T>(): [
   (url: string, init?: RequestInit) => Promise<void>,
   boolean,
   UseFetchError | undefined
-] {
+  ] {
   const [response, setResponse] = useState<T>()
   const [isLoading, setIsLoading] = useState(false)
   // TODO: set 400+ responses in response instead of error
