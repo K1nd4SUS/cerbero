@@ -1,9 +1,9 @@
 import { Button, Input, Spinner, Tab, Tabs, Tooltip } from "@nextui-org/react"
 import { useEffect, useState } from "react"
-import { FaArrowLeft, FaArrowRight, FaPen, FaTrash } from "react-icons/fa6"
+import { FaArrowLeft, FaArrowRight, FaTrash } from "react-icons/fa6"
 import { useFetch } from "../hooks/useFetch"
 import { CerberoRegexes } from "../types/cerbero"
-import { hexEncodeRegex } from "../utils/regexes"
+import { hexEncode } from "../utils/regexes"
 
 export type ServiceRegexesListProps = {
   nfq: string
@@ -11,10 +11,10 @@ export type ServiceRegexesListProps = {
 
 export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
   const [
-    response,
-    fetchRegexes,
-    isLoading,
-    error
+    regexesResponse,
+    regexesFetch,
+    isRegexesLoading,
+    regexesError
   ] = useFetch<CerberoRegexes>()
 
   const [newRegex, setNewRegex] = useState("")
@@ -27,12 +27,18 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
 
   const [
     ,
+    editRegexFetch,
+    isEditRegexFetchLoading
+  ] = useFetch()
+
+  const [
+    ,
     deleteRegexFetch,
     isDeleteRegexLoading,
   ] = useFetch()
 
   useEffect(() => {
-    fetchRegexes(`/api/regexes/${nfq}`)
+    regexesFetch(`/api/regexes/${nfq}`)
   }, [])
 
   async function addNewRegex() {
@@ -51,18 +57,37 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
     })
 
     setNewRegex("")
-    fetchRegexes(`/api/regexes/${nfq}`)
+    regexesFetch(`/api/regexes/${nfq}`)
   }
 
-  async function deleteRegex(reghex: string, state: "active" | "inactive") {
+  async function editRegex(regex: string, currentState: "active" | "inactive", newRegex: string, newState: "active" | "inactive") {
+    const reghex = hexEncode(regex)
+
+    await editRegexFetch(`/api/regexes/${nfq}?reghex=${reghex}&state=${currentState}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        regex: newRegex,
+        state: newState
+      })
+    })
+
+    regexesFetch(`/api/regexes/${nfq}`)
+  }
+
+  async function deleteRegex(regex: string, state: "active" | "inactive") {
+    const reghex = hexEncode(regex)
+
     await deleteRegexFetch(`/api/regexes/${nfq}?reghex=${reghex}&state=${state}`, {
       method: "DELETE"
     })
 
-    fetchRegexes(`/api/regexes/${nfq}`)
+    regexesFetch(`/api/regexes/${nfq}`)
   }
 
-  if(isLoading) {
+  if(isRegexesLoading) {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center">
         <Spinner/>
@@ -70,11 +95,11 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
     )
   }
 
-  if(error) {
+  if(regexesError) {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center">
-        <span className="font-black text-xl text-zinc-300">{error.status} ({error.statusText})</span>
-        <span className="font-semibold text-zinc-600">{error.data.error}</span>
+        <span className="font-black text-xl text-zinc-300">{regexesError.status} ({regexesError.statusText})</span>
+        <span className="font-semibold text-zinc-600">{regexesError.data.error}</span>
       </div>
     )
   }
@@ -95,12 +120,12 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
             <span className="font-bold">Add regex</span>
           </Button>
         </div>
-        {response?.regexes.active.length === 0 ?
+        {regexesResponse?.regexes.active.length === 0 ?
           <div className="h-full w-full flex flex-col items-center justify-center">
             <span className="font-bold text-zinc-600">No regexes here, add one from the input field above!</span>
           </div> :
           <ul className="h-full w-full flex flex-col gap-1">
-            {response?.regexes.active.map((regex, i) => {
+            {regexesResponse?.regexes.active.map((regex, i) => {
               return (
                 <li key={i} className="text-sm bg-default-200 px-4 py-2 rounded-lg hover:opacity-75">
                   <div className="flex items-center justify-between">
@@ -109,18 +134,13 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
                       <span className="font-mono overflow-hidden line-clamp-1">{regex}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Tooltip content="Edit regex" delay={1000} size="sm">
-                        <Button isIconOnly={true} color="warning" variant="flat" size="sm">
-                          <FaPen/>
-                        </Button>
-                      </Tooltip>
                       <Tooltip content="Deactivate regex" delay={1000} size="sm">
-                        <Button isIconOnly={true} color="danger" variant="flat" size="sm">
+                        <Button isLoading={isEditRegexFetchLoading} onPress={() => editRegex(regex, "active", regex, "inactive")} isIconOnly={true} color="danger" variant="flat" size="sm">
                           <FaArrowRight/>
                         </Button>
                       </Tooltip>
                       <Tooltip content="Delete regex" delay={1000} size="sm">
-                        <Button onPress={() => deleteRegex(hexEncodeRegex(regex), "active")} isIconOnly={true} color="danger" variant="flat" size="sm">
+                        <Button isLoading={isDeleteRegexLoading} onPress={() => deleteRegex(regex, "active")} isIconOnly={true} color="danger" variant="flat" size="sm">
                           <FaTrash/>
                         </Button>
                       </Tooltip>
@@ -132,12 +152,12 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
           </ul>}
       </Tab>
       <Tab key="inactive" title="Inactive" className="flex flex-col h-full">
-        {response?.regexes.inactive.length === 0 ?
+        {regexesResponse?.regexes.inactive.length === 0 ?
           <div className="h-full w-full flex flex-col items-center justify-center">
             <span className="font-bold text-zinc-600">No regexes here, deactivate one from the `Active` tab.</span>
           </div> :
           <ul className="h-full w-full flex flex-col gap-1">
-            {response?.regexes.inactive.map((regex, i) => {
+            {regexesResponse?.regexes.inactive.map((regex, i) => {
               return (
                 <li key={i} className="text-sm bg-default-200 px-4 py-2 rounded-lg hover:opacity-75">
                   <div className="flex items-center justify-between">
@@ -146,18 +166,13 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
                       <span className="font-mono">{regex}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Tooltip content="Edit regex" delay={1000} size="sm">
-                        <Button isIconOnly={true} color="warning" variant="flat" size="sm">
-                          <FaPen/>
-                        </Button>
-                      </Tooltip>
-                      <Tooltip content="Deactivate regex" delay={1000} size="sm">
-                        <Button isIconOnly={true} color="success" variant="flat" size="sm">
+                      <Tooltip content="Activate regex" delay={1000} size="sm">
+                        <Button isLoading={isEditRegexFetchLoading} onPress={() => editRegex(regex, "inactive", regex, "active")} isIconOnly={true} color="success" variant="flat" size="sm">
                           <FaArrowLeft/>
                         </Button>
                       </Tooltip>
                       <Tooltip content="Delete regex" delay={1000} size="sm">
-                        <Button isIconOnly={true} color="danger" variant="flat" size="sm">
+                        <Button onPress={() => deleteRegex(regex, "inactive")} isIconOnly={true} color="danger" variant="flat" size="sm">
                           <FaTrash/>
                         </Button>
                       </Tooltip>

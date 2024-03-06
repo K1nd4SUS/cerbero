@@ -26,26 +26,33 @@ export function useFetch<T>(): [
 ] {
   const [response, setResponse] = useState<T>()
   const [isLoading, setIsLoading] = useState(false)
+  // TODO: set 400+ responses in response instead of error
   const [error, setError] = useState<UseFetchError>()
 
   async function triggerFetch(url: string, init?: RequestInit) {
-    setIsLoading(true)
+    try {
+      setIsLoading(true)
 
-    const response = await fetch(url, init)
-    const responseJson = await response.json() as T
+      const response = await fetch(url, init)
+      const responseJson = await response.json() as T
 
-    if(response.ok) {
-      setResponse(responseJson)
+      if(response.ok) {
+        setResponse(responseJson)
+      }
+      else {
+        setError({
+          status: response.status,
+          statusText: response.statusText,
+          data: responseJson as UseFetchError["data"]
+        })
+      }
     }
-    else {
-      setError({
-        status: response.status,
-        statusText: response.statusText,
-        data: responseJson as UseFetchError["data"]
-      })
+    catch(e) {
+      console.error(e)
     }
-
-    setIsLoading(false)
+    finally {
+      setIsLoading(false)
+    }
   }
 
   return [
