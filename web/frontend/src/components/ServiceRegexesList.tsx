@@ -1,18 +1,12 @@
 import { Button, Input, Spinner, Tab, Tabs, Tooltip } from "@nextui-org/react"
 import { useEffect, useState } from "react"
-import { FaArrowLeft, FaArrowRight, FaCircleCheck, FaPen, FaTrash } from "react-icons/fa6"
-import { useFetch, useFetchSync } from "../hooks/useFetch"
+import { FaArrowLeft, FaArrowRight, FaPen, FaTrash } from "react-icons/fa6"
+import { useFetch } from "../hooks/useFetch"
 import { CerberoRegexes } from "../types/cerbero"
+import { hexEncodeRegex } from "../utils/regexes"
 
 export type ServiceRegexesListProps = {
   nfq: string
-}
-
-type NewRegexResponse = {
-  regexes: {
-    active: string[]
-    inactive: string[]
-  }
 }
 
 export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
@@ -29,7 +23,13 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
     ,
     newRegexFetch,
     isNewRegexLoading,
-  ] = useFetch<NewRegexResponse>()
+  ] = useFetch()
+
+  const [
+    ,
+    deleteRegexFetch,
+    isDeleteRegexLoading,
+  ] = useFetch()
 
   useEffect(() => {
     fetchRegexes(`/api/regexes/${nfq}`)
@@ -51,6 +51,14 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
     })
 
     setNewRegex("")
+    fetchRegexes(`/api/regexes/${nfq}`)
+  }
+
+  async function deleteRegex(reghex: string, state: "active" | "inactive") {
+    await deleteRegexFetch(`/api/regexes/${nfq}?reghex=${reghex}&state=${state}`, {
+      method: "DELETE"
+    })
+
     fetchRegexes(`/api/regexes/${nfq}`)
   }
 
@@ -112,7 +120,7 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
                         </Button>
                       </Tooltip>
                       <Tooltip content="Delete regex" delay={1000} size="sm">
-                        <Button isIconOnly={true} color="danger" variant="flat" size="sm">
+                        <Button onPress={() => deleteRegex(hexEncodeRegex(regex), "active")} isIconOnly={true} color="danger" variant="flat" size="sm">
                           <FaTrash/>
                         </Button>
                       </Tooltip>
