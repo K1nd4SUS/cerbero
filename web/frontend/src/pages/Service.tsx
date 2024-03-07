@@ -41,7 +41,7 @@ export default function Service() {
               <div className="flex flex-col gap-4 md:flex-row md:items-center">
                 <span className="font-black text-5xl">{service?.name}</span>
                 <Chip variant="flat" color="success" className="font-bold text-lg">
-                  <span className="font-bold">{service?.protocol}://vm:{service?.port}</span>
+                  <span className="font-mono">{service?.protocol}://vm:{service?.port}</span>
                 </Chip>
               </div>
               <span className="font-mono text-3xl text-zinc-300">nfq:{service?.nfq}</span>
