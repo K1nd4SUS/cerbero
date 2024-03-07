@@ -31,7 +31,7 @@ export default function Service({ name, nfq, port, protocol }: ServiceProps) {
           </div>
           <div className="flex items-center gap-2 ml-auto px-2">
             <Chip variant="flat" color="success">
-              <span className="font-bold">{protocol}://vm:{port}</span>
+              <span className="font-mono">{protocol}://vm:{port}</span>
             </Chip>
           </div>
         </CardHeader>
