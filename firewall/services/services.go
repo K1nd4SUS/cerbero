@@ -134,13 +134,13 @@ func LoadCerberoSocket(ip string, port int, attempt int) error {
 			waitTime := math.Min(float64(attempt)*2, 30)
 			logs.PrintError(fmt.Sprintf("Connection failed. Waiting %v seconds before trying again...", waitTime))
 			time.Sleep(time.Duration(waitTime) * time.Second)
-			logs.PrintInfo("Attempting reconnection...")
+			logs.PrintDebug("Attempting reconnection...")
 			LoadCerberoSocket(ip, port, attempt+1)
 			return nil
 		}
 		return err
 	}
-	logs.PrintDebug(fmt.Sprintf(`Connected to socket at "%v:%v".`, ip, port))
+	logs.PrintInfo(fmt.Sprintf(`Connected to socket at "%v:%v".`, ip, port))
 
 	logs.PrintDebug(`Sending first byte to socket...`)
 	conn.Write([]byte(socketInitializationString))
