@@ -5,7 +5,8 @@ dotenv.config()
 
 const env = z.object({
   API_PORT: z.string().transform(v => parseInt(v)),
-  REDIS_URL: z.string()
+  REDIS_URL: z.string(),
+  SOCKET_PORT: z.string()
 })
 
 env.parse(process.env)
