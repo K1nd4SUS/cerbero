@@ -57,7 +57,7 @@ func GetRemoveRules(config configuration.Configuration) RemoveRules {
 			logs.PrintDebug(fmt.Sprintf(`Removing firewall rules for service "%v" with command "%v"...`, service.Name, cmd.String()))
 			err := cmd.Run()
 			if err != nil {
-				logs.PrintError(err.Error())
+				logs.PrintError(fmt.Sprintf(`Failed to remove firewall rules for service "%v".`, service.Name))
 			} else {
 				logs.PrintInfo(fmt.Sprintf(`Removed firewall rules for service "%v".`, service.Name))
 			}
