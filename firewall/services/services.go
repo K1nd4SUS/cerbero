@@ -21,6 +21,10 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+const (
+	serviceNameRegex = `^[a-z0-9_]*$`
+)
+
 var socketInitializationString = ""
 
 func Configure(config configuration.Configuration) {
@@ -225,16 +229,20 @@ func CheckServicesValues() error {
 	}
 
 	for _, service := range Services {
+		if matches, _ := regexp.MatchString(serviceNameRegex, service.Name); !matches {
+			return errors.New(fmt.Sprintf(`Invalid name for service "%v", must match the regex %v.`, service.Name, serviceNameRegex))
+		}
+
 		if !(1 <= service.Nfq && service.Nfq <= 65535) {
-			return errors.New(fmt.Sprintf(`Invalid nfq for service %v, must be a value from 1 to 65535.`, service.Name))
+			return errors.New(fmt.Sprintf(`Invalid nfq for service "%v", must be a value from 1 to 65535.`, service.Name))
 		}
 
 		if !(service.Protocol == "tcp" || service.Protocol == "udp") {
-			return errors.New(fmt.Sprintf(`Invalid protocol for service %v, must be set to either "tcp" or "udp".`, service.Name))
+			return errors.New(fmt.Sprintf(`Invalid protocol for service "%v", must be set to either "tcp" or "udp".`, service.Name))
 		}
 
 		if !(1 <= service.Port && service.Port <= 65535) {
-			return errors.New(fmt.Sprintf(`Invalid port for service %v, must be a value from 1 to 65535.`, service.Name))
+			return errors.New(fmt.Sprintf(`Invalid port for service "%v", must be a value from 1 to 65535.`, service.Name))
 		}
 
 		doesChainExist, err := ipt.ChainExists("filter", service.Chain)
