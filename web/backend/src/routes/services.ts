@@ -2,6 +2,7 @@ import { Router } from "express"
 import { z } from "zod"
 import { Database } from "../database/db"
 import setupMiddleware from "../middlewares/setup"
+import { cerberoEventEmitter } from "../socket/socket"
 import type { CerberoService } from "../types/service"
 
 const servicesRoute = Router()
@@ -124,6 +125,8 @@ servicesRoute.post("/", async (req, res) => {
 
     await redis.hSet(`services:${service.nfq}`, newService)
   }
+
+  cerberoEventEmitter.emit("cerberoConfigUpdate")
 
   return res.status(201).json({
     isSetupDone: true
