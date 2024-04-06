@@ -28,47 +28,38 @@ firewallRoute.get("/", async (req, res) => {
     firewallConfig.push(parsedFirewallService)
   }
 
+  const sortedConfig = config.sort((service1, service2) => {
+    if(service1.name > service2.name) {
+      return -1
+    }
+
+    return 1
+  })
+
+  const sortedFirewallConfig = firewallConfig.sort((service1, service2) => {
+    if(service1.name > service2.name) {
+      return -1
+    }
+
+    return 1
+  })
+
   // The order of the regexes MATTERS!
-  // If the regexes stay the same but their order changes the firewall is condidered NOT SYNCED!
   return res.json({
     isConnected: isFirewallConnected,
-    isSynced: JSON.stringify(firewallConfig) === JSON.stringify(config)
+    isSynced: JSON.stringify(sortedFirewallConfig) === JSON.stringify(sortedConfig)
   })
 })
 
 // Trigger a firewall configuration update
 firewallRoute.post("/", async (req, res) => {
-  const redis = Database.getInstance()
-
   if(!isFirewallConnected) {
     return res.status(409).json({
       error: "The firewall is not connected, can't update the configuration"
     })
   }
 
-  // Update the "firewall config" in the db
-  // Take the "web config" and override the firewall one
-  const firewallKeys = await redis.keys("firewall:*")
-  for(const firewallKey of firewallKeys) {
-    await redis.del(firewallKey)
-  }
-
-  const servicesKeys = await redis.keys("services:*")
-  const regexesKeys = await redis.keys("regexes:*:active")
-
-  for(const serviceKey of servicesKeys) {
-    await redis.copy(serviceKey, `firewall:${serviceKey}`)
-  }
-
-  for(const regexesKey of regexesKeys) {
-    const regexesKeyParts = regexesKey.split(":")
-    const newRegexesKey = regexesKeyParts.filter((_, i) => i !== regexesKeyParts.length - 1).join(":")
-
-    await redis.copy(regexesKey, `firewall:${newRegexesKey}`)
-  }
-
-
-  cerberoEventEmitter.emit("cerberoConfigUpdate") // FIX: an update could fail inside of this and we would have updated the db anyways
+  cerberoEventEmitter.emit("cerberoConfigUpdate")
 
   return res.status(204).end()
 })

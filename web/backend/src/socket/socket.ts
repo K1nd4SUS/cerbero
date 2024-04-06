@@ -33,6 +33,29 @@ export async function buildConfiguration() {
   return config
 }
 
+export async function synchronizeFirewallConfig() {
+  const redis = Database.getInstance()
+
+  const firewallKeys = await redis.keys("firewall:*")
+
+  for(const firewallKey of firewallKeys) {
+    await redis.del(firewallKey)
+  }
+
+  const servicesKeys = await redis.keys("services:*")
+  const regexesKeys = await redis.keys("regexes:*:active")
+
+  for(const serviceKey of servicesKeys) {
+    await redis.copy(serviceKey, `firewall:${serviceKey}`)
+  }
+
+  for(const regexesKey of regexesKeys) {
+    const firewallRegexesKey = regexesKey.replace(":active", "")
+
+    await redis.copy(regexesKey, `firewall:${firewallRegexesKey}`)
+  }
+}
+
 /**
  * Only one connection at a time can be established
  * Once the first client is connected (firewall) the server stops listening for new connections
@@ -66,6 +89,8 @@ socketServer.on("connection", async socket => {
 
     const newConfig = await buildConfiguration()
     const encodedConfig = btoa(JSON.stringify(newConfig))
+
+    await synchronizeFirewallConfig()
 
     socket.write(encodedConfig + "\n")
   })
