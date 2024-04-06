@@ -17,18 +17,20 @@ export default function Header() {
     ,
   ] = useFetch()
 
-  function handleFwUpdate() {
-    triggerFwUpdate("/api/firewall", {
+  async function handleFwUpdate() {
+    await triggerFwUpdate("/api/firewall", {
       method: "POST"
     })
   }
 
   useEffect(() => {
-    triggerFwFetch("/api/firewall")
+    void triggerFwFetch("/api/firewall")
 
-    setInterval(() => {
-      triggerFwFetch("/api/firewall")
-    }, 5000)
+    async function intervalCallback() {
+      await triggerFwFetch("/api/firewall")
+    }
+
+    setInterval(intervalCallback, 5000)
   }, [])
 
   return (
@@ -47,15 +49,15 @@ export default function Header() {
               <FaCheck/>
               <span className="font-bold">Firewall synced</span>
             </Button> :
-              <Button onPress={handleFwUpdate} color="warning" variant="flat" className="ml-auto">
-                <FaFire/>
-                <span className="font-bold">Apply changes</span>
-              </Button> :
+            <Button onPress={() => void handleFwUpdate()} color="warning" variant="flat" className="ml-auto">
+              <FaFire/>
+              <span className="font-bold">Apply changes</span>
+            </Button> :
           <Button color="danger" variant="flat" disabled>
             <FaTriangleExclamation/>
             <span className="font-bold">Firewall not connected</span>
           </Button>}
       </div>
-   </header>
+    </header>
   )
 }

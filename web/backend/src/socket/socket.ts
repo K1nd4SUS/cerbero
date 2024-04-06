@@ -67,7 +67,7 @@ socketServer.on("listening", () => {
   console.info(`Socket server listening on port ${process.env.SOCKET_PORT}`)
 })
 
-socketServer.on("connection", async socket => {
+socketServer.on("connection", socket => {
   const { remoteAddress, remotePort } = socket
 
   console.info(`A connection with ${remoteAddress}:${remotePort} was established`)

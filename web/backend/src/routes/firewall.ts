@@ -52,7 +52,7 @@ firewallRoute.get("/", async (req, res) => {
 })
 
 // Trigger a firewall configuration update
-firewallRoute.post("/", async (req, res) => {
+firewallRoute.post("/", (req, res) => {
   if(!isFirewallConnected) {
     return res.status(409).json({
       error: "The firewall is not connected, can't update the configuration"
