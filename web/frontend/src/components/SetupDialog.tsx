@@ -14,7 +14,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { FaCheck, FaPlus, FaTrash } from "react-icons/fa6"
 import { CerberoServiceInput } from "../types/cerbero"
-import { isNameInvalid, isNfqInvalid, isPortInvalid } from "../utils/validation"
+import { isChainInvalid, isNameInvalid, isNfqInvalid, isPortInvalid } from "../utils/validation"
 
 export type SetupDialogProps = {
   isOpen: boolean
@@ -25,6 +25,7 @@ export type SetupDialogProps = {
 
 export default function SetupDialog({ isOpen, services, setIsOpen, setServices }: SetupDialogProps) {
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0)
+  const [chain, setChain] = useState("")
   const [name, setName] = useState("")
   const [nfq, setNfq] = useState("")
   const [port, setPort] = useState("")
@@ -34,12 +35,14 @@ export default function SetupDialog({ isOpen, services, setIsOpen, setServices }
 
   // Add a new (empty) service
   function addService() {
+    setChain("")
     setName("")
     setNfq("")
     setPort("")
     setProtocol("tcp")
 
     setServices(services.concat({
+      chain: "",
       name: "",
       nfq: "",
       port: "",
@@ -67,6 +70,7 @@ export default function SetupDialog({ isOpen, services, setIsOpen, setServices }
       return
     }
 
+    setChain(services[currentServiceIndex].chain)
     setName(services[currentServiceIndex].name)
     setNfq(services[currentServiceIndex].nfq.toString())
     setPort(services[currentServiceIndex].port.toString())
@@ -81,6 +85,10 @@ export default function SetupDialog({ isOpen, services, setIsOpen, setServices }
     for(const service of services) {
       const integerNfq = parseInt(service.nfq)
       const integerPort = parseInt(service.port)
+
+      if(isChainInvalid(service.chain)) {
+        return false
+      }
 
       if(isNameInvalid(service.name)) {
         return false
@@ -128,6 +136,7 @@ export default function SetupDialog({ isOpen, services, setIsOpen, setServices }
       if(i === currentServiceIndex) {
         return {
           ...service,
+          chain,
           name,
           nfq: nfq,
           port: port,
@@ -139,7 +148,7 @@ export default function SetupDialog({ isOpen, services, setIsOpen, setServices }
     })
 
     setServices(newServices)
-  }, [name, nfq, port, protocol])
+  }, [chain, name, nfq, port, protocol])
 
   return (
     <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} size="3xl">
@@ -175,6 +184,15 @@ export default function SetupDialog({ isOpen, services, setIsOpen, setServices }
             isInvalid={isNfqInvalid(parseInt(nfq))}
             onChange={({ target }) => setNfq(target.value)}
           />
+          <Input
+            label="Chain"
+            placeholder="INPUT"
+            type="text"
+            value={chain}
+            minLength={1}
+            maxLength={32}
+            onChange={({ target }) => setChain(target.value)}
+          />
           <RadioGroup
             label="Protocol"
             size="sm"
@@ -182,7 +200,7 @@ export default function SetupDialog({ isOpen, services, setIsOpen, setServices }
             defaultValue={protocol}
             value={protocol}
             onChange={({ target }) => setProtocol(target.value as "tcp" | "udp")}
-            className="items-center"
+            className="col-span-2 items-center p-2"
           >
             <div className="flex items-center gap-4">
               <Radio value="tcp">TCP</Radio>

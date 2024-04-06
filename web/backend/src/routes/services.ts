@@ -35,6 +35,7 @@ servicesRoute.get("/", setupMiddleware, async (req, res) => {
     const service = await redis.hGetAll(serviceKey)
 
     const parsedService: CerberoService = {
+      chain: service.chain,
       name: service.name,
       nfq: parseInt(service.nfq),
       port: parseInt(service.port),
@@ -92,6 +93,7 @@ servicesRoute.post("/", async (req, res) => {
   }
 
   const bodySchema = z.array(z.object({
+    chain: z.string(),
     name: z.string(),
     nfq: z.number(),
     port: z.number(),
@@ -117,6 +119,7 @@ servicesRoute.post("/", async (req, res) => {
     }
 
     const newService = {
+      chain: service.chain,
       name: service.name,
       nfq: service.nfq,
       port: service.port,
@@ -181,6 +184,7 @@ servicesRoute.get("/:nfq", setupMiddleware, async (req, res) => {
   }
 
   const parsedService: CerberoService = {
+    chain: service.chain,
     name: service.name,
     nfq: parseInt(service.nfq),
     port: parseInt(service.port),

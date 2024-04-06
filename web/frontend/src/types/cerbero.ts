@@ -1,4 +1,5 @@
 export type CerberoService = {
+  chain: string
   name: string
   nfq: number
   port: number
@@ -10,6 +11,7 @@ export type CerberoService = {
 }
 
 export type CerberoServiceInput = {
+  chain: string
   name: string
   nfq: string
   port: string

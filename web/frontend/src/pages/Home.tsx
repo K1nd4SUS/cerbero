@@ -16,6 +16,7 @@ export default function Home() {
   ] = useFetchSync<{ isSetupDone: boolean }>("/api/setup")
   const [isSetupDialogOpen, setIsSetupDialogOpen] = useState(false)
   const [services, setServices] = useState<CerberoServiceInput[]>([{
+    chain: "",
     name: "",
     nfq: "",
     port: "",

@@ -21,7 +21,7 @@ export async function buildConfiguration() {
     const regexes = await redis.sMembers(`regexes:${nfq}:active`)
 
     config.push({
-      chain: "OUTPUT", // TODO: set from db
+      chain: service.chain,
       name: service.name,
       nfq: parseInt(service.nfq),
       port: parseInt(service.port),

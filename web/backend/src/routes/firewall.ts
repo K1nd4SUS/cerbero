@@ -17,7 +17,7 @@ firewallRoute.get("/", async (req, res) => {
     const regexes = await redis.sMembers(`firewall:regexes:${nfq}`)
 
     const parsedFirewallService = {
-      chain: "OUTPUT",
+      chain: firewallService.chain,
       name: firewallService.name,
       nfq: parseInt(firewallService.nfq),
       port: parseInt(firewallService.port),
