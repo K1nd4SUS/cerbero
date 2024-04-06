@@ -40,8 +40,11 @@ export default function Service() {
             <div className="flex flex-col gap-2 p-8 border-b-2 border-zinc-700">
               <div className="flex flex-col gap-4 md:flex-row md:items-center">
                 <span className="font-black text-5xl">{service?.name}</span>
-                <Chip variant="flat" color="success" className="font-bold text-lg">
-                  <span className="font-mono">{service?.protocol}://vm:{service?.port}</span>
+                <Chip variant="flat" color="success">
+                  <span className="font-mono text-lg">{service?.protocol}://vm:{service?.port}</span>
+                </Chip>
+                <Chip variant="flat" color="primary">
+                  <span className="font-mono text-lg">chain:{service?.chain}</span>
                 </Chip>
               </div>
               <span className="font-mono text-3xl text-zinc-300">nfq:{service?.nfq}</span>

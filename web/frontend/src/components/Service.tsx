@@ -5,13 +5,14 @@ import { useFetchSync } from "../hooks/useFetch"
 import type { CerberoRegexes } from "../types/cerbero"
 
 export type ServiceProps = {
+  chain: string
   name: string
   nfq: number
   port: number
   protocol: "tcp" | "udp"
 }
 
-export default function Service({ name, nfq, port, protocol }: ServiceProps) {
+export default function Service({ chain, name, nfq, port, protocol }: ServiceProps) {
   const navigate = useNavigate()
   const [
     regexes,
@@ -32,6 +33,9 @@ export default function Service({ name, nfq, port, protocol }: ServiceProps) {
           <div className="flex items-center gap-2 ml-auto px-2">
             <Chip variant="flat" color="success">
               <span className="font-mono">{protocol}://vm:{port}</span>
+            </Chip>
+            <Chip variant="flat" color="primary">
+              <span className="font-mono">chain:{chain}</span>
             </Chip>
           </div>
         </CardHeader>

@@ -7,6 +7,9 @@ import type { CerberoRegexes } from "./regex"
  *    CerberoService:
  *      type: object
  *      properties:
+ *        chain:
+ *          description: The iptables chain of the service
+ *          type: string
  *        name:
  *          description: The name of the service
  *          type: string
@@ -26,6 +29,7 @@ import type { CerberoRegexes } from "./regex"
  */
 
 export type CerberoService = {
+  chain: string
   name: string
   nfq: number
   port: number

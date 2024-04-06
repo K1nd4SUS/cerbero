@@ -1,3 +1,7 @@
+export function isChainInvalid(chain: string) {
+  return chain.length === 0 || chain.length > 32
+}
+
 export function isNameInvalid(name: string) {
   return name.length === 0 || name.length > 32
 }
