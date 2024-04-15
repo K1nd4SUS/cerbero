@@ -18,7 +18,7 @@ firewallRoute.get("/", async (req, res) => {
 
     const parsedFirewallService = {
       chain: firewallService.chain,
-      name: firewallService.name,
+      name: firewallService.nameNormalized,
       nfq: parseInt(firewallService.nfq),
       port: parseInt(firewallService.port),
       protocol: firewallService.protocol as "tcp" | "udp",

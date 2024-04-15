@@ -22,7 +22,7 @@ export async function buildConfiguration() {
 
     config.push({
       chain: service.chain,
-      name: service.name,
+      name: service.nameNormalized,
       nfq: parseInt(service.nfq),
       port: parseInt(service.port),
       protocol: service.protocol as "tcp" | "udp",

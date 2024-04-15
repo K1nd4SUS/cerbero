@@ -4,6 +4,7 @@ import { Database } from "../database/db"
 import setupMiddleware from "../middlewares/setup"
 import { cerberoEventEmitter } from "../socket/socket"
 import type { CerberoService } from "../types/service"
+import { normalizeName } from "../utils/strings"
 
 const servicesRoute = Router()
 
@@ -118,9 +119,12 @@ servicesRoute.post("/", async (req, res) => {
       await redis.sAdd(`regexes:${service.nfq}:active`, service.regexes)
     }
 
+    const nameNormalized = normalizeName(service.name)
+
     const newService = {
       chain: service.chain,
       name: service.name,
+      nameNormalized: nameNormalized,
       nfq: service.nfq,
       port: service.port,
       protocol: service.protocol
