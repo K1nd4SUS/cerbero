@@ -61,7 +61,7 @@ export default function Service() {
               <span className="font-bold text-3xl text-zinc-300">Regexes</span>
               <Card className="h-full bg-default-100">
                 <CardBody>
-                  <ServiceRegexesList nfq={nfq}/>
+                  <ServiceRegexesList nfq={nfq as string}/>
                 </CardBody>
               </Card>
             </div>
