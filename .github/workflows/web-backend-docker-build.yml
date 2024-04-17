@@ -24,11 +24,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get the frontend build
+      - name: Get the backend build
         uses: dawidd6/action-download-artifact@v3
         with:
           name: cerbero-backend # artifact name
-          path: dist # the artifact is extracted into this directory
+          path: web/backend/dist # the artifact is extracted into this directory
           workflow: web-backend-build.yml
           workflow_conclusion: success
           github_token: ${{ secrets.GITHUB_TOKEN }}
