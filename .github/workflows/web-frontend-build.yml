@@ -1,0 +1,25 @@
+name: web-frontend-build
+
+on: pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Build frontend
+        run: |
+          cd web/frontend/
+          npm ci
+          npm run build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cerbero-frontend
+          path: dist
+

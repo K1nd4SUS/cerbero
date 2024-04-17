@@ -1,0 +1,32 @@
+services:
+  cerbero-frontend:
+    image: ghcr.io/k1nd4sus/cerbero-frontend:latest
+    container_name: cerbero-frontend
+    restart: unless-stopped
+    depends_on:
+      - cerbero-backend
+    ports:
+      - 80:80
+
+  cerbero-backend:
+    image: ghcr.io/k1nd4sus/cerbero-backend:latest
+    container_name: cerbero-backend
+    restart: unless-stopped
+    depends_on:
+      cerbero-redis-stack:
+        condition: service_healthy
+    ports:
+      - 8080:${API_PORT}
+      - 6969:${SOCKET_PORT}
+    env_file:
+      - .env
+
+  cerbero-redis-stack:
+    image: redis/redis-stack:latest
+    container_name: cerbero-redis-stack
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      start_period: 5s
+
