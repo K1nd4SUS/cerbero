@@ -1,7 +1,6 @@
 name: web-frontend-docker-build
 
 on:
-  workflow_dispatch:
   push:
     tags:
       - '*'
