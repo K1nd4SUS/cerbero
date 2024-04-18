@@ -1,6 +1,14 @@
 name: web-backend-build
 
-on: pull_request
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - web/backend/**
+  pull_request:
+    paths:
+      - web/backend/**
 
 jobs:
   build:

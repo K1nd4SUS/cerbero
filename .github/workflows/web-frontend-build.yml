@@ -1,6 +1,14 @@
 name: web-frontend-build
 
-on: pull_request
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - web/frontend/**
+  pull_request:
+    paths:
+      - web/frontend/**
 
 jobs:
   build:
