@@ -23,10 +23,23 @@ jobs:
 
       - name: Release on GitHub
         run: |
-          gh release create \
-            $(git describe --tags --abbrev=0) -t $(git describe --tags --abbrev=0) \
-            --target main --generate-notes \
-            firewall/cerbero
+          latest_tag=$(git describe --tags --abbrev=0)
+          is_prerelease=false
+          release_attachments="firewall/cerbero"
+
+          if [[ $latest_tag == *"alpha"* || $latest_tag == *"beta"* ]]; then
+            is_prerelease=true
+          fi
+
+          command="gh release create $(git describe --tags --abbrev=0) -t $(git describe --tags --abbrev=0) --target main --generate-notes"
+
+          if [ $is_prerelease = true ]; then
+            command="$command --prerelease"
+          fi
+
+          command="$command $release_attachments"
+
+          $command
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_TOKEN }} # A custom token is needed to chain workflows after this one (e.g. docker builds)
 
