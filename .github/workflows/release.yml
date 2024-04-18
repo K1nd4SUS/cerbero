@@ -13,22 +13,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download frontend build artifact
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: web-frontend-build.yml
-          workflow_conclusion: success
-          name: cerbero-frontend
-          path: web/frontend/dist/
-
-      - name: Download backend build artifact
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: web-backend-build.yml
-          workflow_conclusion: success
-          name: cerbero-backend
-          path: web/backend/dist/
-
       - name: Download firewall build artifact
         uses: dawidd6/action-download-artifact@v3
         with:
@@ -42,8 +26,6 @@ jobs:
           gh release create \
             $(git describe --tags --abbrev=0) -t $(git describe --tags --abbrev=0) \
             --target main --generate-notes \
-            web/frontend/dist/ \
-            web/backend/dist/ \
             firewall/cerbero
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_TOKEN }} # A custom token is needed to chain workflows after this one (e.g. docker builds)
