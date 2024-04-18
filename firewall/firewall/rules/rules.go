@@ -1,9 +1,9 @@
 package rules
 
 import (
-	"cerbero3/configuration"
-	"cerbero3/logs"
-	"cerbero3/services"
+	"cerbero/configuration"
+	"cerbero/logs"
+	"cerbero/services"
 	"fmt"
 	"os"
 	"os/exec"

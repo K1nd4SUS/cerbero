@@ -1,14 +1,14 @@
 package main
 
 import (
-	"cerbero3/configuration"
-	"cerbero3/credentials"
-	"cerbero3/firewall"
-	"cerbero3/firewall/rules"
-	"cerbero3/interrupt"
-	"cerbero3/logs"
-	"cerbero3/metrics"
-	"cerbero3/services"
+	"cerbero/configuration"
+	"cerbero/credentials"
+	"cerbero/firewall"
+	"cerbero/firewall/rules"
+	"cerbero/interrupt"
+	"cerbero/logs"
+	"cerbero/metrics"
+	"cerbero/services"
 	"errors"
 	"fmt"
 	"os"

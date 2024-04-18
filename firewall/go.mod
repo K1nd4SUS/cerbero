@@ -1,4 +1,4 @@
-module cerbero3
+module cerbero
 
 go 1.21.4
 

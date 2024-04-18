@@ -1,9 +1,9 @@
 package logs
 
 import (
-	"cerbero3/configuration"
-	"cerbero3/logs/colors"
-	"cerbero3/logs/logfile"
+	"cerbero/configuration"
+	"cerbero/logs/colors"
+	"cerbero/logs/logfile"
 	"fmt"
 	"os"
 	"time"

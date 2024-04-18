@@ -1,11 +1,11 @@
 package firewallnfq
 
 import (
-	"cerbero3/firewall/headers"
-	"cerbero3/firewall/rules"
-	"cerbero3/logs"
-	"cerbero3/metrics"
-	"cerbero3/services"
+	"cerbero/firewall/headers"
+	"cerbero/firewall/rules"
+	"cerbero/logs"
+	"cerbero/metrics"
+	"cerbero/services"
 	"context"
 	"fmt"
 	"time"
