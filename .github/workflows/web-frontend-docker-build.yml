@@ -1,9 +1,8 @@
 name: web-frontend-docker-build
 
 on:
-  push:
-    tags:
-      - '*'
+  release:
+    type: published
 
 env:
   REGISTRY: ghcr.io

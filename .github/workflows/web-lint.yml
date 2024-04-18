@@ -1,6 +1,9 @@
 name: web-lint
 
-on: pull_request
+on:
+  pull_request:
+    paths:
+      - web/**
 
 jobs:
   lint:
@@ -22,3 +25,4 @@ jobs:
           cd web/backend/
           npm ci
           npm run lint
+
