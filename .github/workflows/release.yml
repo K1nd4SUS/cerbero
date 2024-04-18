@@ -44,7 +44,7 @@ jobs:
             --target main --generate-notes \
             web/frontend/dist/ \
             web/backend/dist/ \
-            firewall/cerbero3
+            firewall/cerbero
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_TOKEN }} # A custom token is needed to chain workflows after this one (e.g. docker builds)
 
