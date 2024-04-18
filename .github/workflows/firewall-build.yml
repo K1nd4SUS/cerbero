@@ -1,0 +1,35 @@
+name: firewall-build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - firewall/**
+  pull_request:
+    paths:
+      - firewall/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21.4
+
+      - name: Build firewall
+        run: |
+          cd firewall/
+          go build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cerbero
+          path: firewall/cerbero3
+
