@@ -1,11 +1,11 @@
 package metrics
 
 import (
-	"cerbero3/configuration"
-	"cerbero3/logs"
-	"cerbero3/metrics/metricsdb"
-	"cerbero3/metrics/metricsregex"
-	"cerbero3/services"
+	"cerbero/configuration"
+	"cerbero/logs"
+	"cerbero/metrics/metricsdb"
+	"cerbero/metrics/metricsregex"
+	"cerbero/services"
 	"fmt"
 	"net/http"
 	"os"

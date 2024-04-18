@@ -1,7 +1,7 @@
 package configuration
 
 import (
-	"cerbero3/configuration/cli"
+	"cerbero/configuration/cli"
 	"errors"
 	"os"
 	"strconv"

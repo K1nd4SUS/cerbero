@@ -1,9 +1,9 @@
 package metricsdb
 
 import (
-	"cerbero3/metrics/metricsjobs"
-	"cerbero3/metrics/metricsregex"
-	"cerbero3/services"
+	"cerbero/metrics/metricsjobs"
+	"cerbero/metrics/metricsregex"
+	"cerbero/services"
 	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"

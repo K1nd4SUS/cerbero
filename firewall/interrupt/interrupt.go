@@ -1,7 +1,7 @@
 package interrupt
 
 import (
-	"cerbero3/firewall/rules"
+	"cerbero/firewall/rules"
 	"os"
 	"os/signal"
 )

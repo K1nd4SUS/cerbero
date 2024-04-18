@@ -3,9 +3,9 @@ package services
 import (
 	"bufio"
 	"bytes"
-	"cerbero3/configuration"
-	"cerbero3/logs"
-	"cerbero3/random"
+	"cerbero/configuration"
+	"cerbero/logs"
+	"cerbero/random"
 	"encoding/base64"
 	"encoding/json"
 	"errors"

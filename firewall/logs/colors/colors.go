@@ -1,7 +1,7 @@
 package colors
 
 import (
-	"cerbero3/configuration"
+	"cerbero/configuration"
 	"fmt"
 )
 
