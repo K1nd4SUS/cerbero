@@ -16,8 +16,7 @@ services:
       cerbero-redis-stack:
         condition: service_healthy
     ports:
-      - 8080:${API_PORT}
-      - 6969:${SOCKET_PORT}
+      - 127.0.0.1:6969:${SOCKET_PORT}
     env_file:
       - .env
 
