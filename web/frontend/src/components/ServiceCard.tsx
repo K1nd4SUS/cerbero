@@ -1,5 +1,5 @@
 import { Card, CardBody, CardHeader, Chip, Divider, Skeleton } from "@nextui-org/react"
-import { useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { FaCode } from "react-icons/fa6"
 import { useFetchSync } from "../hooks/useFetch"
 import type { CerberoRegexes } from "../types/cerbero"
@@ -12,15 +12,14 @@ export type ServiceProps = {
   protocol: "tcp" | "udp"
 }
 
-export default function Service({ chain, name, nfq, port, protocol }: ServiceProps) {
-  const navigate = useNavigate()
+export default function ServiceCard({ chain, name, nfq, port, protocol }: ServiceProps) {
   const [
     regexes,
     isLoading
   ] = useFetchSync<CerberoRegexes>(`/api/regexes/${nfq}`)
 
   return (
-    <div onClick={() => navigate(`/services/${nfq}`)}>
+    <Link to={`/services/${nfq}`}>
       <Card key={nfq} className="h-full w-full text-zinc-300 hover:scale-[102.5%] hover:cursor-pointer">
         <CardHeader className="w-full flex items-center">
           <div className="flex flex-col gap-1 px-2">
@@ -60,6 +59,6 @@ export default function Service({ chain, name, nfq, port, protocol }: ServicePro
           </div>
         </CardBody>
       </Card>
-    </div>
+    </Link>
   )
 }
