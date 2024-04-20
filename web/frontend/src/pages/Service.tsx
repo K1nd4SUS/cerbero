@@ -17,7 +17,7 @@ export default function Service() {
   ] = useFetch<CerberoService>()
 
   useEffect(() => {
-    fetchService(`/api/services/${nfq}`)
+    void fetchService(`/api/services/${nfq}`)
   }, [nfq])
 
   if(error) {
