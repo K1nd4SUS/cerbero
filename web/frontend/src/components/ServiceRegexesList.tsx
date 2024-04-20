@@ -1,6 +1,8 @@
-import { Button, Input, Spinner, Tab, Tabs, Tooltip } from "@nextui-org/react"
+import { Button, Input, Tab, Tabs, Tooltip } from "@nextui-org/react"
 import { useEffect, useState } from "react"
 import { FaArrowLeft, FaArrowRight, FaTrash } from "react-icons/fa6"
+import Error from "../components/Error"
+import Loading from "../components/Loading"
 import { useFetch } from "../hooks/useFetch"
 import { CerberoRegexes } from "../types/cerbero"
 import { hexEncode } from "../utils/regexes"
@@ -89,18 +91,13 @@ export default function ServiceRegexesList({ nfq }: ServiceRegexesListProps) {
 
   if(isRegexesLoading) {
     return (
-      <div className="h-full w-full flex flex-col items-center justify-center">
-        <Spinner/>
-      </div>
+      <Loading text="Loading regexes..."/>
     )
   }
 
   if(regexesError) {
     return (
-      <div className="h-full w-full flex flex-col items-center justify-center">
-        <span className="font-black text-xl text-zinc-300">{regexesError.status} ({regexesError.statusText})</span>
-        <span className="font-semibold text-zinc-600">{regexesError.data.error}</span>
-      </div>
+      <Error error={regexesError}/>
     )
   }
 

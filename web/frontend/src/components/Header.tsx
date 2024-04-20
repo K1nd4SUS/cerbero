@@ -1,5 +1,6 @@
 import { Button } from "@nextui-org/react"
 import { useEffect } from "react"
+import { Link } from "react-router-dom"
 import { FaCheck, FaFire, FaTriangleExclamation } from "react-icons/fa6"
 import cerberoPng from "../assets/images/cerbero.png"
 import { useFetch } from "../hooks/useFetch"
@@ -35,13 +36,13 @@ export default function Header() {
 
   return (
     <header className="w-full flex items-center justify-center p-4 bg-default-50 shadow-2xl">
-      <a href="/services" className="absolute">
+      <Link to="/services" className="absolute">
         <img
           src={cerberoPng}
           alt="cerbero"
           className="h-8"
         />
-      </a>
+      </Link>
       <div className="ml-auto">
         {firewall?.isConnected ?
           firewall?.isSynced ?

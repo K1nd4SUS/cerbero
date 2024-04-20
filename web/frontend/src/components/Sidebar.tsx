@@ -1,11 +1,11 @@
 import { Button, Divider } from "@nextui-org/react"
 import { motion } from "framer-motion"
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { FaBars, FaCode, FaHouse } from "react-icons/fa6"
+import SidebarItem from "../components/SidebarItem"
 import { useFetchSync } from "../hooks/useFetch"
 import { CerberoService } from "../types/cerbero"
-import SidebarItem from "./SidebarItem"
 
 export default function Sidebar() {
   const [
@@ -14,7 +14,6 @@ export default function Sidebar() {
   ] = useFetchSync<CerberoService[]>("/api/services")
 
   const [isOpen, setIsOpen] = useState(false)
-  const navigate = useNavigate()
 
   return (
     <motion.aside
@@ -51,14 +50,19 @@ export default function Sidebar() {
       </div>
       <div className="w-full flex items-center justify-center">
         {isOpen ?
-          <Button variant="bordered" className="w-full flex items-center gap-4" onPress={() => navigate("/")}>
-            <FaHouse/>
-            <span>Go to the landing page</span>
-          </Button> :
-          <Button isIconOnly={true} variant="bordered" onPress={() => navigate("/")}>
-            <FaHouse/>
-          </Button>}
+          <Link to="/" className="w-full flex items-center gap-4">
+            <Button variant="bordered" className="w-full">
+              <FaHouse/>
+              <span>Go to the landing page</span>
+            </Button>
+          </Link> :
+          <Link to="/">
+            <Button isIconOnly={true} variant="bordered">
+              <FaHouse/>
+            </Button>
+          </Link>}
       </div>
     </motion.aside>
   )
 }
+
