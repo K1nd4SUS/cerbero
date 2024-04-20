@@ -24,7 +24,7 @@ Fill the `.env` file with the desired values:
 Example:
 
 ```
-API_PORT="8080"
+API_PORT="80"
 REDIS_URL="redis://cerbero-redis-stack:6379"
 SOCKET_PORT="6969"
 ```
