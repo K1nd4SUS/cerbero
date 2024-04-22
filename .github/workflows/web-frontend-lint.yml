@@ -1,0 +1,28 @@
+name: web-frontend-lint
+
+on:
+  pull_request:
+    paths:
+      - web/frontend/**.html
+      - web/frontend/**.ts
+      - web/frontend/**.tsx
+      - web/frontend/.eslintrc.cjs
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Lint frontend
+        run: |
+          cd web/frontend/
+          npm ci
+          npm run lint
+
