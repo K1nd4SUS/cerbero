@@ -5,10 +5,16 @@ on:
     branches:
       - main
     paths:
-      - web/backend/**
+      - web/backend/**.ts
+      - web/backend/package.json
+      - web/backend/package-lock.json
+      - web/backend/tsconfig.json
   pull_request:
     paths:
-      - web/backend/**
+      - web/backend/**.ts
+      - web/backend/package.json
+      - web/backend/package-lock.json
+      - web/backend/tsconfig.json
 
 jobs:
   build:
@@ -16,16 +22,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 18.17.1
+
       - name: Build backend
         run: |
           cd web/backend/
           npm ci
           npm run build
+
       - name: Upload build artifact
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: cerbero-backend
