@@ -35,7 +35,7 @@
 
 ## Before contributing
 
-No matter if you are a inside `K!nd4SUS` or a random dude that suddenly wants to contribute to this project, before making any change to the codebase, please read this document.
+No matter if you are a developer inside `K!nd4SUS` or a random dude that suddenly wants to contribute to this project, before making any change to the codebase, please read this document.
 
 ## Bootstrapping a development environment
 
