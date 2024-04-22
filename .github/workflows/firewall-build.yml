@@ -5,10 +5,14 @@ on:
     branches:
       - main
     paths:
-      - firewall/**
+      - firewall/**.go
+      - firewall/go.mod
+      - firewall/go.sum
   pull_request:
     paths:
-      - firewall/**
+      - firewall/**.go
+      - firewall/go.mod
+      - firewall/go.sum
 
 jobs:
   build:
@@ -28,6 +32,7 @@ jobs:
           go build
 
       - name: Upload build artifact
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: cerbero

@@ -5,10 +5,26 @@ on:
     branches:
       - main
     paths:
-      - web/frontend/**
+      - web/frontend/**.html
+      - web/frontend/**.ts
+      - web/frontend/**.tsx
+      - web/frontend/package.json
+      - web/frontend/package-lock.json
+      - web/frontend/postcss.config.cjs
+      - web/frontend/tailwind.config.cjs
+      - web/frontend/tsconfig.json
+      - web/frontend/tsconfig.node.json
   pull_request:
     paths:
-      - web/frontend/**
+      - web/frontend/**.html
+      - web/frontend/**.ts
+      - web/frontend/**.tsx
+      - web/frontend/package.json
+      - web/frontend/package-lock.json
+      - web/frontend/postcss.config.cjs
+      - web/frontend/tailwind.config.cjs
+      - web/frontend/tsconfig.json
+      - web/frontend/tsconfig.node.json
 
 jobs:
   build:
@@ -16,16 +32,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 18
+
       - name: Build frontend
         run: |
           cd web/frontend/
           npm ci
           npm run build
+
       - name: Upload build artifact
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: cerbero-frontend
