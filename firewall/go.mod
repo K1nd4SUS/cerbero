@@ -3,6 +3,7 @@ module cerbero
 go 1.21.4
 
 require (
+	github.com/alecthomas/kong v0.8.1
 	github.com/coreos/go-iptables v0.7.0
 	github.com/florianl/go-nfqueue v1.3.1
 	github.com/fsnotify/fsnotify v1.7.0
@@ -10,7 +11,6 @@ require (
 )
 
 require (
-	github.com/alecthomas/kong v0.8.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -26,5 +26,5 @@ require (
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )
