@@ -26,7 +26,7 @@ export default function Sidebar() {
           <Button onPress={() => setIsOpen(false)} variant="flat" className="w-full">
             <span>Close sidebar</span>
           </Button> :
-          <Button isIconOnly={true} onPress={() => setIsOpen(true)} variant="flat">
+          <Button isIconOnly onPress={() => setIsOpen(true)} variant="flat">
             <FaBars/>
           </Button>}
       </div>
@@ -50,17 +50,13 @@ export default function Sidebar() {
       </div>
       <div className="w-full flex items-center justify-center">
         {isOpen ?
-          <Link to="/" className="w-full flex items-center gap-4">
-            <Button variant="bordered" className="w-full">
-              <FaHouse/>
-              <span>Go to the landing page</span>
-            </Button>
-          </Link> :
-          <Link to="/">
-            <Button isIconOnly={true} variant="bordered">
-              <FaHouse/>
-            </Button>
-          </Link>}
+          <Button as={Link} to="/" variant="bordered" className="w-full">
+            <FaHouse/>
+            <span>Go to the landing page</span>
+          </Button> :
+          <Button as={Link} to="/" isIconOnly={true} variant="bordered">
+            <FaHouse/>
+          </Button>}
       </div>
     </motion.aside>
   )

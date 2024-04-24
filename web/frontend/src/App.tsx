@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import BaseLayout from "./layouts/BaseLayout"
 import ServicesLayout from "./layouts/ServicesLayout"
 import Home from "./pages/Home"
 import Service from "./pages/Service"
@@ -17,27 +18,34 @@ export default function App() {
         <Route
           path="/"
           element={
-            <Home/>
-          }
-        />
-        <Route
-          path="/services"
-          element={
-            <ServicesLayout/>
+            <BaseLayout/>
           }
         >
           <Route
             index
             element={
-              <Services/>
+              <Home/>
             }
           />
           <Route
-            path=":nfq"
+            path="services"
             element={
-              <Service/>
+              <ServicesLayout/>
             }
-          />
+          >
+            <Route
+              index
+              element={
+                <Services/>
+              }
+            />
+            <Route
+              path=":nfq"
+              element={
+                <Service/>
+              }
+            />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

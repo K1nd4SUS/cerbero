@@ -16,13 +16,11 @@ export default function SidebarItem({ children, icon, isSidebarOpen, link, name 
 
   if(!isSidebarOpen) {
     return (
-      <Link to={link}>
-        <Tooltip content="Services" size="sm" delay={1000}>
-          <Button isIconOnly={true} variant="bordered" size="sm">
-            {icon}
-          </Button>
-        </Tooltip>
-      </Link>
+      <Tooltip content="Services" size="sm" delay={1000}>
+        <Button as={Link} to={link} isIconOnly={true} variant="bordered" size="sm">
+          {icon}
+        </Button>
+      </Tooltip>
     )
   }
 
@@ -34,10 +32,10 @@ export default function SidebarItem({ children, icon, isSidebarOpen, link, name 
           <span className="font-bold">{name}</span>
         </Link>
         {isOpen ?
-          <Button isIconOnly={true} onPress={() => setIsOpen(false)} size="sm" className="ml-auto">
+          <Button isIconOnly onPress={() => setIsOpen(false)} size="sm" className="ml-auto">
             <FaCaretUp/>
           </Button> :
-          <Button isIconOnly={true} onPress={() => setIsOpen(true)} size="sm" className="ml-auto">
+          <Button isIconOnly onPress={() => setIsOpen(true)} size="sm" className="ml-auto">
             <FaCaretDown/>
           </Button>}
       </div>
