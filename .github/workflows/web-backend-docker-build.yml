@@ -31,9 +31,9 @@ jobs:
       - name: Get the build
         uses: dawidd6/action-download-artifact@v3
         with:
-          name: ${{ env.ARTIFACT_NAME}} # artifact name
-          path: ${{ env.PATH}}/dist # the artifact is extracted into this directory
-          workflow: ${{ env.WORKFLOW}}
+          name: ${{ env.ARTIFACT_NAME }} # artifact name
+          path: ${{ env.PATH }}/dist # the artifact is extracted into this directory
+          workflow: ${{ env.WORKFLOW }}
           workflow_conclusion: success
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -44,7 +44,7 @@ jobs:
       
       - name: Build image
         run: |
-          cd ${{ env.PATH}}
+          cd ${{ env.PATH }}
           podman build -t ${{ matrix.platform }} --arch ${{ matrix.platform }} .
           podman save -o ${{ matrix.platform }} ${{ matrix.platform }}
       
@@ -52,7 +52,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: '${{ matrix.platform }}'
-          path: ${{ env.PATH}}/${{ matrix.platform }}
+          path: ${{ env.PATH }}/${{ matrix.platform }}
           if-no-files-found: error
           retention-days: 1
 
