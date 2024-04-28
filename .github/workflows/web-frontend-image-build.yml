@@ -1,4 +1,4 @@
-name: web-backend-docker-build
+name: web-frontend-image-build
 
 on:
   release:
@@ -6,10 +6,10 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: k1nd4sus/cerbero-backend
-  BUILD_PATH: web/backend
-  ARTIFACT_NAME: cerbero-backend
-  WORKFLOW: web-backend-build.yml
+  IMAGE_NAME: k1nd4sus/cerbero-frontend
+  BUILD_PATH: web/frontend
+  ARTIFACT_NAME: cerbero-frontend
+  WORKFLOW: web-frontend-build.yml
 
 jobs:
   build:
