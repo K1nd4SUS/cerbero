@@ -2,59 +2,85 @@ name: web-frontend-docker-build
 
 on:
   release:
-    type: published
+    types: published
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: k1nd4sus/cerbero-frontend
+  BUILD_PATH: web/frontend
+  ARTIFACT_NAME: cerbero-frontend
+  WORKFLOW: web-frontend-build.yml
 
 jobs:
-  build-docker:
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform:
+          - amd64
+          - arm64
     permissions:
       actions: read
       contents: read
       packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
       id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get the frontend build
+      - name: Get the build
         uses: dawidd6/action-download-artifact@v3
         with:
-          name: cerbero-frontend # artifact name
-          path: web/frontend/dist # the artifact is extracted into this directory
-          workflow: web-frontend-build.yml
+          name: ${{ env.ARTIFACT_NAME }} # artifact name
+          path: ${{ env.BUILD_PATH }}/dist # the artifact is extracted into this directory
+          workflow: ${{ env.WORKFLOW }}
           workflow_conclusion: success
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
-
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+      - name: Setup Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install podman qemu-user-static
+      
+      - name: Build image
+        run: |
+          cd ${{ env.BUILD_PATH }}
+          podman build -t ${{ matrix.platform }} --arch ${{ matrix.platform }} .
+          podman save -o ${{ matrix.platform }} ${{ matrix.platform }}
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          name: '${{ matrix.platform }}'
+          path: ${{ env.BUILD_PATH }}/${{ matrix.platform }}
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
-        with:
-          context: web/frontend/
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+  push:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tags:
+          - ${{ github.event.release.tag_name }}
+          - latest
+    steps:
+      - name: Setup
+        run: |
+          sudo apt update
+          sudo apt-get -y install podman qemu-user-static
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
 
+      - name: Registry login
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login -u ${{ github.actor }} --password-stdin
+
+      - name: Create and push manifest
+        run: |
+          podman manifest create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }}
+          podman manifest add create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }} docker-archive:amd64
+          podman manifest add create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }} docker-archive:arm64
+          podman manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }}
+          podman manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }}
