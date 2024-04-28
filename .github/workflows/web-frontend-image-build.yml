@@ -56,15 +56,31 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  tag:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.determine_tag.outputs.release }}
+    steps:
+      - name: Find tag
+        id: determine_tag
+        run: |
+          if [[ ${{ github.event.release.tag_name }} == *"beta"* ]]; then
+              echo "release=beta" >> "$GITHUB_OUTPUT"
+          elif [[ ${{ github.event.release.tag_name }} == *"alpha"* ]]; then
+            echo "release=alpha" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=latest" >> "$GITHUB_OUTPUT"
+          fi
 
   push:
-    needs: build
+    needs: tag
     runs-on: ubuntu-latest
     strategy:
       matrix:
         tags:
           - ${{ github.event.release.tag_name }}
-          - latest
+          - ${{ needs.tag.outputs.release }}
     steps:
       - name: Setup
         run: |
