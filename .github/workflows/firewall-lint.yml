@@ -1,0 +1,25 @@
+name: firewall-lint
+
+on:
+  pull_request:
+    paths:
+      - firewall/**.go
+      - firewall/go.mod
+      - firewall/go.sum
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.21.4'
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v5
+      with:
+        version: v1.57
+        working-directory: firewall
+        skip-cache: true
+        skip-save-cache: true
