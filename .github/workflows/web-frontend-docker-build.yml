@@ -75,7 +75,7 @@ jobs:
         uses: actions/download-artifact@v4
 
       - name: Registry login
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login -u ${{ github.actor }} --password-stdin ${{ env.REGISTRY }}
 
       - name: Create and push manifest
         run: |
