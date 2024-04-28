@@ -80,7 +80,7 @@ jobs:
       - name: Create and push manifest
         run: |
           podman manifest create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }}
-          podman manifest add create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }} docker-archive:amd64
-          podman manifest add create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }} docker-archive:arm64
+          podman manifest add ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }} docker-archive:amd64
+          podman manifest add ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }} docker-archive:arm64
           podman manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }}
           podman manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.tags }}
