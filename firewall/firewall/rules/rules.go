@@ -23,7 +23,10 @@ func getIPTablesCommand(config configuration.Configuration, service services.Ser
 			}
 		}()), service.Chain,
 		"-p", service.Protocol,
-		"--dport", fmt.Sprintf("%v", service.Port),
+		// taken from:
+		// https://docs.docker.com/network/packet-filtering-firewalls/#match-the-original-ip-and-ports-for-requests
+		"-m", "conntrack",
+		"--ctorigdstport", fmt.Sprintf("%v", service.Port),
 		"-j", "NFQUEUE",
 		"--queue-num", fmt.Sprintf("%v", service.Nfq),
 	)
