@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "dotenv": "^16.3.1",
-    "express": "^4.19.2",
+    "express": "^4.21.0",
     "redis": "^4.6.11",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
