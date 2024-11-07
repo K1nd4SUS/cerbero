@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/dlclark/regexp2"
 	"io"
 	"math"
 	"net"
@@ -48,7 +49,7 @@ type Service struct {
 	Port      int      `json:"port"`
 	Chain     string   `json:"chain"`
 	RegexList []string `json:"regexes"`
-	Matchers  []*regexp.Regexp
+	Matchers  []*regexp2.Regexp
 }
 
 func LoadConfigFile(configurationFile string) error {
@@ -263,7 +264,14 @@ func CompileMatchers() {
 	for index := range Services {
 		Services[index].Matchers = nil
 		for _, regex := range Services[index].RegexList {
-			Services[index].Matchers = append(Services[index].Matchers, regexp.MustCompile(regex))
+			// TODO: support regex options
+			re, err := regexp2.Compile(regex, 0)
+			if err != nil {
+				logs.PrintError(fmt.Sprintf(`Error parsing regex "%v" for service %v: %v.`, regex, Services[index].Name, err))
+				continue
+			}
+
+			Services[index].Matchers = append(Services[index].Matchers, re)
 		}
 	}
 

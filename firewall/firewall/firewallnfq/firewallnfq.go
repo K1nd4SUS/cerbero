@@ -99,7 +99,8 @@ func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, serviceIndex 
 	var droppedRegex string
 	verdict := nfqueue.NfAccept
 	for _, matcher := range services.Services[serviceIndex].Matchers {
-		if matcher.MatchString(payloadString) {
+		match, err := matcher.MatchString(payloadString)
+		if match || err != nil {
 			// immediately drop the packet when the string matches
 			// the regex; this SHOULD have a very slight performance
 			// boost over saving the verdict first and then setting
@@ -107,6 +108,9 @@ func handlePacket(nfq *nfqueue.Nfqueue, packet *nfqueue.Attribute, serviceIndex 
 			nfq.SetVerdict(*packet.PacketID, nfqueue.NfDrop)
 			verdict = nfqueue.NfDrop
 			droppedRegex = matcher.String()
+			if err != nil {
+				logs.PrintError(fmt.Sprintf(`Error while matching regex: %v. Packet dropped.`, err.Error()))
+			}
 
 			goto verdictSet
 		}
