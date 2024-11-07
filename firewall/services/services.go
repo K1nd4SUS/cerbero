@@ -267,5 +267,5 @@ func CompileMatchers() {
 		}
 	}
 
-	logs.PrintDebug("Compiled regex matchers...")
+	logs.PrintDebug("Compiled regex matchers.")
 }
