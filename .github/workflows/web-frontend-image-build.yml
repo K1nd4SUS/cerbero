@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Get the build
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           name: ${{ env.ARTIFACT_NAME }} # artifact name
           path: ${{ env.BUILD_PATH }}/dist # the artifact is extracted into this directory
